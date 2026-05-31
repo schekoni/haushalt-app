@@ -46,8 +46,24 @@
   .player.active{border-color:currentColor; box-shadow:0 0 0 4px rgba(255,255,255,.04), 0 8px 30px rgba(0,0,0,.35);}
   .player .glow{position:absolute; inset:0; opacity:.10; background:currentColor;}
   .player .top{display:flex; align-items:center; gap:10px; position:relative;}
+  .pname{font-size:18px; font-weight:700;}
+  .plevel{font-size:12px; color:var(--muted);}
+  .pscore{font-size:48px; font-weight:800; line-height:1; margin-top:6px; position:relative; font-variant-numeric:tabular-nums; transition:transform .15s;}
+  .pscore.bump{transform:scale(1.12);}
+  .pscore small{font-size:15px; color:var(--muted); font-weight:600;}
+  .koni{color:var(--koni);} .claude{color:var(--claude);} .jakob{color:var(--jakob);}
+  .bar{height:8px; background:rgba(255,255,255,.08); border-radius:6px; margin-top:12px; overflow:hidden; position:relative;}
+  .bar > i{display:block; height:100%; background:currentColor; border-radius:6px; transition:width .4s ease;}
+  .bar.mini{height:5px; margin-top:5px; opacity:.8;}
+  .streak{font-size:12px; color:var(--muted); margin-top:8px; position:relative;}
+  .rankrow{font-size:12px; color:var(--muted); margin-top:8px; position:relative;}
+  .crown{position:absolute; top:12px; right:14px; font-size:24px; animation:bobble 2s ease-in-out infinite;}
+  @keyframes bobble{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-4px) rotate(6deg)}}
+  .medals{font-size:18px; margin-top:8px; position:relative; line-height:1.5; letter-spacing:1px;}
+  .medals .more{font-size:12px; color:var(--muted);}
+
+  /* Rang-Avatar */
   .avatar{width:46px; height:46px; border-radius:50%; display:grid; place-items:center; font-size:26px; background:rgba(255,255,255,.08);}
-  /* Rang-Avatar (steigt mit jedem Rang auf) */
   .av{position:relative; flex-shrink:0;}
   .av .ring{position:absolute; inset:0; border-radius:50%; background:var(--ring,#475569); box-shadow:var(--glow,none);}
   .av .face{position:absolute; inset:3px; border-radius:50%; background:#1b2536; display:grid; place-items:center;}
@@ -55,28 +71,13 @@
   @keyframes spin{to{transform:rotate(360deg)}}
   .av.aura .ring{animation:spin 6s linear infinite, auraPulse 1.8s ease-in-out infinite;}
   @keyframes auraPulse{0%,100%{box-shadow:0 0 14px 2px rgba(255,255,255,.4)}50%{box-shadow:0 0 30px 8px rgba(255,255,255,.75)}}
-  .av .crown{position:absolute; top:-13px; left:50%; transform:translateX(-50%); font-size:18px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.5)); z-index:3;}
+  .av .crown{position:absolute; top:-13px; left:50%; transform:translateX(-50%); font-size:18px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.5)); z-index:3; animation:none;}
   .av .deco{position:absolute; bottom:-4px; right:-4px; font-size:16px; background:#0f172a; border-radius:50%; padding:1px 2px; z-index:3;}
   .av .spark{position:absolute; top:-8px; right:-8px; font-size:15px; animation:sparkle 1.4s ease-in-out infinite; z-index:3;}
   @keyframes sparkle{0%,100%{opacity:.4; transform:scale(.8) rotate(0)}50%{opacity:1; transform:scale(1.2) rotate(20deg)}}
-  .pname{font-size:18px; font-weight:700;}
-  .plevel{font-size:12px; color:var(--muted);}
-  .pscore{font-size:54px; font-weight:800; line-height:1; margin-top:6px; position:relative; font-variant-numeric:tabular-nums; transition:transform .15s;}
-  .pscore.bump{transform:scale(1.12);}
-  .pscore small{font-size:18px; color:var(--muted); font-weight:600;}
-  .koni{color:var(--koni);} .claude{color:var(--claude);} .jakob{color:var(--jakob);}
-  .bar{height:8px; background:rgba(255,255,255,.08); border-radius:6px; margin-top:12px; overflow:hidden; position:relative;}
-  .bar > i{display:block; height:100%; background:currentColor; border-radius:6px; transition:width .4s ease;}
-  .streak{font-size:12px; color:var(--muted); margin-top:8px; position:relative;}
-  .rankrow{font-size:12px; color:var(--muted); margin-top:8px; position:relative;}
-  .bar.mini{height:5px; margin-top:5px; opacity:.8;}
-  .crown{position:absolute; top:12px; right:14px; font-size:24px; animation:bobble 2s ease-in-out infinite;}
-  @keyframes bobble{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-4px) rotate(6deg)}}
-  .medals{font-size:18px; margin-top:8px; position:relative; line-height:1.5; letter-spacing:1px;}
-  .medals .more{font-size:12px; color:var(--muted);}
 
-  .toggle{display:flex; background:var(--panel); border-radius:18px; padding:6px; margin-bottom:18px; gap:6px;}
-  .toggle button{flex:1; border:none; background:transparent; color:var(--muted); font-size:17px; font-weight:700; padding:14px; border-radius:13px; cursor:pointer; transition:.2s;}
+  .toggle{display:flex; flex-wrap:wrap; background:var(--panel); border-radius:18px; padding:6px; margin-bottom:18px; gap:6px;}
+  .toggle button{flex:1; min-width:90px; border:none; background:transparent; color:var(--muted); font-size:16px; font-weight:700; padding:14px; border-radius:13px; cursor:pointer; transition:.2s;}
   .toggle button.on{background:var(--panel2); color:var(--text);}
   .toggle button.on.koni{color:var(--koni); box-shadow:inset 0 0 0 2px var(--koni);}
   .toggle button.on.claude{color:var(--claude); box-shadow:inset 0 0 0 2px var(--claude);}
@@ -100,7 +101,7 @@
   .chore .cname{font-size:15px; font-weight:600; line-height:1.2;}
   .chore .pts{font-size:13px; color:var(--gold); font-weight:700;}
   .chore.golden{box-shadow:inset 0 0 0 2px var(--gold); background:linear-gradient(180deg,#3a2f12,#1e293b); animation:goldpulse 2s ease-in-out infinite;}
-  @keyframes goldpulse{0%,100%{box-shadow:inset 0 0 0 2px var(--gold), 0 0 0 0 rgba(251,191,36,.0)}50%{box-shadow:inset 0 0 0 2px var(--gold), 0 0 16px 2px rgba(251,191,36,.35)}}
+  @keyframes goldpulse{0%,100%{box-shadow:inset 0 0 0 2px var(--gold), 0 0 0 0 rgba(251,191,36,0)}50%{box-shadow:inset 0 0 0 2px var(--gold), 0 0 16px 2px rgba(251,191,36,.35)}}
   .chore .badge{position:absolute; top:6px; right:8px; font-size:11px; background:var(--gold); color:#3a2a06; font-weight:800; padding:2px 7px; border-radius:20px;}
   .ripple{position:absolute; border-radius:50%; background:rgba(255,255,255,.35); transform:scale(0); pointer-events:none; width:120px; height:120px; margin:-60px 0 0 -60px;}
   @keyframes rippleAnim{to{transform:scale(3); opacity:0}}
@@ -118,7 +119,6 @@
   .log .undo{background:none; border:none; color:var(--muted); font-size:18px; cursor:pointer; padding:4px 6px;}
   .empty{color:var(--muted); text-align:center; padding:24px; font-size:14px;}
 
-  /* Snackbar (Rückgängig) */
   .snackbar{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom)); transform:translate(-50%,140px);
     background:var(--panel2); color:var(--text); padding:12px 14px 12px 16px; border-radius:16px; display:flex; gap:14px;
     align-items:center; box-shadow:0 12px 34px rgba(0,0,0,.5); z-index:80; max-width:92%; font-size:14px; opacity:0; transition:transform .3s, opacity .3s;}
@@ -126,7 +126,6 @@
   .snackbar b{font-weight:700;}
   .snackbar button{background:var(--green); color:#06281c; border:none; border-radius:11px; padding:9px 14px; font-weight:800; font-size:14px; cursor:pointer; white-space:nowrap;}
 
-  /* Celebration */
   .celebrate{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:110;}
   .celebrate .card{background:var(--panel); border:2px solid var(--gold); border-radius:22px; padding:22px 30px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.55);}
   .celebrate .ce{font-size:60px; line-height:1;}
@@ -156,14 +155,13 @@
   .addbtn{width:100%; border:1px dashed rgba(255,255,255,.2); background:transparent; color:var(--muted); border-radius:12px; padding:12px; cursor:pointer; font-size:15px; margin-top:6px;}
   .field{width:100%; background:var(--panel2); border:1px solid rgba(255,255,255,.1); color:var(--text); border-radius:12px; padding:14px; font-size:17px; margin-bottom:10px;}
 
-  /* Trophy room */
-  .tabs{display:flex; gap:6px; margin-bottom:14px;}
-  .tabs button{flex:1; border:none; background:var(--panel2); color:var(--muted); padding:12px; border-radius:12px; font-weight:700; font-size:15px; cursor:pointer;}
+  .tabs{display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap;}
+  .tabs button{flex:1; min-width:80px; border:none; background:var(--panel2); color:var(--muted); padding:12px; border-radius:12px; font-weight:700; font-size:15px; cursor:pointer;}
   .tabs button.sel.koni{color:var(--koni); box-shadow:inset 0 0 0 2px var(--koni);}
   .tabs button.sel.claude{color:var(--claude); box-shadow:inset 0 0 0 2px var(--claude);}
   .tabs button.sel.jakob{color:var(--jakob); box-shadow:inset 0 0 0 2px var(--jakob);}
-  .tstat{display:flex; gap:8px; margin-bottom:14px;}
-  .tstat .box{flex:1; background:var(--panel2); border-radius:12px; padding:10px; text-align:center;}
+  .tstat{display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
+  .tstat .box{flex:1; min-width:70px; background:var(--panel2); border-radius:12px; padding:10px; text-align:center;}
   .tstat .box b{display:block; font-size:20px;}
   .tstat .box span{font-size:11px; color:var(--muted);}
   .trophy-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(94px,1fr)); gap:10px;}
@@ -233,8 +231,8 @@ const FIREBASE_CONFIG = {
   measurementId: "G-EZMB5BXWK2"
 };
 
-/* ---------- Defaults ---------- */
-const DEFAULT_CHORES = [
+/* ---------- Aufgaben ---------- */
+const ADULT_CHORES = [
   {e:"🍽️", n:"Küche aufräumen", p:15},
   {e:"🧹", n:"Saugen", p:20},
   {e:"🚽", n:"Klo putzen", p:25},
@@ -250,10 +248,29 @@ const DEFAULT_CHORES = [
   {e:"🐶", n:"Hund Gassi", p:15},
   {e:"🪟", n:"Fenster putzen", p:30},
 ];
+/* Aufgaben für Kinder (einfacher, kleinere Punkte) */
+const KID_CHORES = [
+  {e:"🧸", n:"Spielzeug aufräumen", p:10},
+  {e:"🛏️", n:"Eigenes Bett machen", p:10},
+  {e:"🦷", n:"Zähne putzen (ohne Meckern)", p:5},
+  {e:"🎒", n:"Schultasche packen", p:5},
+  {e:"🍽️", n:"Tisch decken", p:10},
+  {e:"🧺", n:"Schmutzwäsche in den Korb", p:5},
+  {e:"📚", n:"Hausaufgaben gemacht", p:15},
+  {e:"🐟", n:"Haustier füttern", p:10},
+  {e:"🧹", n:"Beim Tisch abräumen helfen", p:10},
+  {e:"👟", n:"Schuhe & Jacke wegräumen", p:5},
+];
+const DEFAULT_CHORES = ADULT_CHORES.concat(KID_CHORES);
+
 const PLAYERS = {
   koni:   {name:"Koni",   emoji:"🧔", cls:"koni"},
   claude: {name:"Claude", emoji:"👩", cls:"claude"},
+  jakob:  {name:"Jakob",  emoji:"👦", cls:"jakob"},
 };
+const PLAYER_IDS = Object.keys(PLAYERS);
+function colorOf(p){ return "var(--"+p+")"; }
+
 /* Lebenslange Ränge – basieren auf insgesamt gesammelten Punkten (allTimePoints).
    Die Abstände werden bewusst immer größer (immer schwerer aufzusteigen). */
 const RANKS = [
@@ -270,45 +287,20 @@ const RANKS = [
   {min:15000, e:"🏆", name:"Großmeister der Sauberkeit"},
   {min:22000, e:"⚡", name:"Haushalts-Gott"},
 ];
-/* 20 Geschenk-/Belohnungsideen (max. 5 Min Aufwand) – am Wochenende wird zufällig eine gezogen */
-const REWARDS = [
-  {e:"☕", t:"Lieblingsgetränk ans Sofa serviert bekommen"},
-  {e:"💆", t:"5 Minuten Nacken- & Schultermassage"},
-  {e:"🎬", t:"Heute Abend den Film/die Serie aussuchen dürfen"},
-  {e:"🍫", t:"Lieblingsschokolade oder -snack wird besorgt"},
-  {e:"🛏️", t:"Morgen Kaffee/Tee ans Bett"},
-  {e:"🎵", t:"Den ganzen Tag die Musik/Playlist bestimmen"},
-  {e:"🦶", t:"5 Minuten Fußmassage"},
-  {e:"📝", t:"Gutschein: 1× eine Haushaltsaufgabe abgenommen"},
-  {e:"🧁", t:"Eine kleine Lieblings-Süßigkeit als Überraschung"},
-  {e:"🤗", t:"Extra-lange Kuschel-Einheit auf der Couch"},
-  {e:"🍳", t:"Wunsch-Frühstück wird zubereitet"},
-  {e:"📺", t:"Eine Folge der Lieblingsserie zusammen schauen"},
-  {e:"💌", t:"Ein handgeschriebenes Liebes-Kärtchen"},
-  {e:"🍽️", t:"Das Abendessen heute aussuchen dürfen"},
-  {e:"😴", t:"30 Minuten ungestörte Ruhe – Partner übernimmt"},
-  {e:"🌟", t:"Drei ehrliche Komplimente bekommen"},
-  {e:"🚗", t:"Beim nächsten Autofahren Beifahrer-DJ sein"},
-  {e:"🛁", t:"Das Bad gehört dir – in Ruhe lange duschen/baden"},
-  {e:"🧹", t:"Gutschein: Partner saugt diese Woche"},
-  {e:"📸", t:"Ein gemeinsames Erinnerungs-Selfie"},
-];
-function pickReward(){ return REWARDS[Math.floor(Math.random()*REWARDS.length)]; }
-
 /* Avatar-Stufen: werden mit jedem Rang hochwertiger (Ring, Glow, Krone, Funkeln) */
 const AVATAR_TIERS = [
-  {ring:"#475569", glow:"none"},                                                                 // 0 Frischling – schlicht
-  {ring:"#b45309", glow:"none"},                                                                 // 1 Helferlein – Bronze
-  {ring:"linear-gradient(135deg,#d97706,#b45309)", glow:"none", deco:"🧢"},                       // 2 Putzhilfe
-  {ring:"#9ca3af", glow:"none"},                                                                 // 3 Guter Saubermacher – Silber
-  {ring:"linear-gradient(135deg,#e5e7eb,#9ca3af)", glow:"0 0 10px rgba(229,231,235,.45)"},        // 4 Ordnungstalent – Silber+Glow
-  {ring:"linear-gradient(135deg,#fbbf24,#d97706)", glow:"0 0 12px rgba(251,191,36,.5)"},          // 5 Haushaltsheld – Gold
-  {ring:"linear-gradient(135deg,#fde047,#f59e0b)", glow:"0 0 14px rgba(251,191,36,.6)", deco:"🎩"},// 6 Putz-Profi
-  {ring:"linear-gradient(135deg,#fde047,#f59e0b)", glow:"0 0 18px rgba(251,191,36,.7)", deco:"🎖️"},// 7 Saubermeister
-  {ring:"linear-gradient(135deg,#fbbf24,#f59e0b)", glow:"0 0 18px rgba(251,191,36,.75)", crown:true}, // 8 Haushalts-Boss – Krone
-  {ring:"linear-gradient(135deg,#67e8f9,#22d3ee,#38bdf8)", glow:"0 0 22px rgba(34,211,238,.75)", crown:true}, // 9 Legende – Diamant
-  {ring:"conic-gradient(#f472b6,#fbbf24,#34d399,#38bdf8,#a78bfa,#f472b6)", glow:"0 0 24px rgba(167,139,250,.7)", crown:true, spark:true, spin:true}, // 10 Großmeister – Regenbogen
-  {ring:"conic-gradient(#f472b6,#fbbf24,#34d399,#38bdf8,#a78bfa,#f472b6)", glow:"none", crown:true, spark:true, spin:true, aura:true}, // 11 Haushalts-Gott – Aura
+  {ring:"#475569", glow:"none"},
+  {ring:"#b45309", glow:"none"},
+  {ring:"linear-gradient(135deg,#d97706,#b45309)", glow:"none", deco:"🧢"},
+  {ring:"#9ca3af", glow:"none"},
+  {ring:"linear-gradient(135deg,#e5e7eb,#9ca3af)", glow:"0 0 10px rgba(229,231,235,.45)"},
+  {ring:"linear-gradient(135deg,#fbbf24,#d97706)", glow:"0 0 12px rgba(251,191,36,.5)"},
+  {ring:"linear-gradient(135deg,#fde047,#f59e0b)", glow:"0 0 14px rgba(251,191,36,.6)", deco:"🎩"},
+  {ring:"linear-gradient(135deg,#fde047,#f59e0b)", glow:"0 0 18px rgba(251,191,36,.7)", deco:"🎖️"},
+  {ring:"linear-gradient(135deg,#fbbf24,#f59e0b)", glow:"0 0 18px rgba(251,191,36,.75)", crown:true},
+  {ring:"linear-gradient(135deg,#67e8f9,#22d3ee,#38bdf8)", glow:"0 0 22px rgba(34,211,238,.75)", crown:true},
+  {ring:"conic-gradient(#f472b6,#fbbf24,#34d399,#38bdf8,#a78bfa,#f472b6)", glow:"0 0 24px rgba(167,139,250,.7)", crown:true, spark:true, spin:true},
+  {ring:"conic-gradient(#f472b6,#fbbf24,#34d399,#38bdf8,#a78bfa,#f472b6)", glow:"none", crown:true, spark:true, spin:true, aura:true},
 ];
 function avatarHTML(player, rankIdx, size){
   const t=AVATAR_TIERS[Math.min(Math.max(rankIdx,0),AVATAR_TIERS.length-1)];
@@ -321,6 +313,31 @@ function avatarHTML(player, rankIdx, size){
     ${t.spark?'<div class="spark">✨</div>':''}
   </div>`;
 }
+
+/* 20 Geschenk-/Belohnungsideen (max. 5 Min) – am Wochenende wird zufällig eine gezogen */
+const REWARDS = [
+  {e:"☕", t:"Lieblingsgetränk ans Sofa serviert bekommen"},
+  {e:"💆", t:"5 Minuten Nacken- & Schultermassage"},
+  {e:"🎬", t:"Heute Abend den Film/die Serie aussuchen dürfen"},
+  {e:"🍫", t:"Lieblingsschokolade oder -snack wird besorgt"},
+  {e:"🛏️", t:"Morgen Kaffee/Tee/Kakao ans Bett"},
+  {e:"🎵", t:"Den ganzen Tag die Musik/Playlist bestimmen"},
+  {e:"🦶", t:"5 Minuten Fußmassage"},
+  {e:"📝", t:"Gutschein: 1× eine Haushaltsaufgabe abgenommen"},
+  {e:"🧁", t:"Eine kleine Lieblings-Süßigkeit als Überraschung"},
+  {e:"🤗", t:"Extra-lange Kuschel-Einheit auf der Couch"},
+  {e:"🍳", t:"Wunsch-Frühstück wird zubereitet"},
+  {e:"📺", t:"Eine Folge der Lieblingsserie zusammen schauen"},
+  {e:"💌", t:"Ein handgeschriebenes liebes Kärtchen"},
+  {e:"🍽️", t:"Das Abendessen heute aussuchen dürfen"},
+  {e:"😴", t:"30 Minuten ungestörte Ruhe / länger aufbleiben"},
+  {e:"🌟", t:"Drei ehrliche Komplimente bekommen"},
+  {e:"🚗", t:"Beim nächsten Autofahren Beifahrer-DJ sein"},
+  {e:"🎮", t:"Extra Bildschirm-/Spielzeit (15 Min)"},
+  {e:"🍦", t:"Eine Kugel Eis / Lieblingsdessert"},
+  {e:"📸", t:"Ein gemeinsames Erinnerungs-Selfie"},
+];
+function pickReward(){ return REWARDS[Math.floor(Math.random()*REWARDS.length)]; }
 
 /* Achievements: test(w=Wochendaten, s=Lifetime-Stats, h=History, wins) */
 const ACHIEVEMENTS = [
@@ -351,6 +368,7 @@ const ACHIEVEMENTS = [
 
 /* ---------- Local-only (pro Gerät) ---------- */
 let active = localStorage.getItem("haushalt_active") || "koni";
+if(!PLAYERS[active]) active="koni";
 function setActive(p){ active=p; localStorage.setItem("haushalt_active",p); }
 function getFamilyCode(){ return localStorage.getItem("haushalt_family") || ""; }
 function setFamilyCode(c){ localStorage.setItem("haushalt_family", c.trim().toLowerCase()); }
@@ -365,11 +383,7 @@ function isoWeek(d){
   return dt.getUTCFullYear()+"-W"+String(w).padStart(2,"0");
 }
 function freshPlayerWeek(){ return {score:0, total:0, streak:0, bestStreak:0, goldenDone:0, choreCounts:{}}; }
-function freshWeek(){
-  const w={log:[], lastBy:null};
-  PLAYER_IDS.forEach(p=> w[p]=freshPlayerWeek());
-  return w;
-}
+function freshWeek(){ const w={log:[], lastBy:null}; PLAYER_IDS.forEach(p=> w[p]=freshPlayerWeek()); return w; }
 function freshStats(){ return {allTimeTotal:0, allTimePoints:0, challengesDone:0, dayStreak:0, bestDayStreak:0,
                               lastDay:null, earlyBird:false, nightOwl:false, achieved:[]}; }
 function ensureShape(s){
@@ -379,14 +393,13 @@ function ensureShape(s){
   for(const p of PLAYER_IDS){
     if(!s.data[p]) s.data[p]=freshPlayerWeek();
     const d=s.data[p]; if(d.bestStreak==null)d.bestStreak=0; if(d.goldenDone==null)d.goldenDone=0; if(!d.choreCounts)d.choreCounts={};
-    s.stats[p] = Object.assign(freshStats(), s.stats[p]||{}); if(!Array.isArray(s.stats[p].achieved)) s.stats[p].achieved=[];
+    s.stats[p]=Object.assign(freshStats(), s.stats[p]||{}); if(!Array.isArray(s.stats[p].achieved)) s.stats[p].achieved=[];
   }
   s.history = s.history || [];
   s.migrations = s.migrations || {};
   if(typeof s.rev!=="number") s.rev=0;
   return s;
 }
-/* Einmalige Datenmigrationen (idempotent, Flag wird synchronisiert) */
 function runMigrations(){
   let changed=false;
   if(!state.migrations.kidChores){
@@ -398,7 +411,7 @@ function runMigrations(){
 function load(){
   let s; try{ s=JSON.parse(localStorage.getItem(LS)); }catch(e){}
   if(!s){ s={chores:DEFAULT_CHORES.slice(), week:isoWeek(new Date()), data:freshWeek(),
-            history:[], goldenDay:null, golden:null, challenge:null, challengeDate:null, stats:{}, rev:0}; }
+            history:[], goldenDay:null, golden:null, challenge:null, challengeDate:null, stats:{}, migrations:{}, rev:0}; }
   return ensureShape(s);
 }
 let state = load();
@@ -415,7 +428,7 @@ function setDot(cls){ const d=document.getElementById("syncDot"); if(d) d.classN
 async function initSync(){
   if(!FIREBASE_CONFIG.apiKey){ setDot("off"); return; }
   const code=getFamilyCode();
-  if(!code){ setDot("off"); openSync(true); return; }
+  if(!code){ setDot("off"); openSync(); return; }
   try{
     const {initializeApp}=await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
     const {getFirestore, doc, onSnapshot, setDoc}=await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
@@ -468,7 +481,6 @@ function checkWeek(){
     state.history.unshift({week:state.week, scores, winner:weekWinner(scores), reward:pickReward()});
     state.history=state.history.slice(0,30);
     state.week=now; state.data=freshWeek();
-    // Sieg-Trophäen sofort prüfen
     PLAYER_IDS.forEach(p=>checkAchievements(p));
     save();
     showWeekResult(state.history[0], true);
@@ -491,7 +503,7 @@ function ensureDaily(){
     ];
     state.challenge=pool[Math.floor(Math.random()*pool.length)];
     state.challenge.doneBy=null;
-    state.challenge.todayCounts={koni:0, claude:0, koniVar:[], claudeVar:[]};
+    state.challenge.todayCounts={};
     changed=true;
   }
   if(changed) save();
@@ -533,17 +545,15 @@ function doChore(idx, ev, btn){
   if(isGolden) d.goldenDone=(d.goldenDone||0)+1;
   state.data.lastBy=p;
 
-  // lifetime stats
   s.allTimeTotal++; s.allTimePoints+=pts;
   const hr=new Date().getHours();
   if(hr<8) s.earlyBird=true; if(hr>=22) s.nightOwl=true;
   const t=todayStr();
   if(s.lastDay!==t){ s.dayStreak=(s.lastDay===yesterdayStr())? s.dayStreak+1 : 1; s.lastDay=t; s.bestDayStreak=Math.max(s.bestDayStreak||0,s.dayStreak); }
 
-  // challenge
   const ch=state.challenge;
   if(ch && !ch.doneBy){
-    const tc=ch.todayCounts||(ch.todayCounts={koni:0,claude:0,koniVar:[],claudeVar:[]});
+    const tc=ch.todayCounts||(ch.todayCounts={});
     tc[p]=(tc[p]||0)+1; const vk=p+"Var"; tc[vk]=tc[vk]||[]; if(!tc[vk].includes(c.n)) tc[vk].push(c.n);
     let done=false;
     if(ch.type==="variety") done=tc[vk].length>=ch.goal;
@@ -555,18 +565,14 @@ function doChore(idx, ev, btn){
       celebrate("🎯","Challenge geschafft!", ch.txt+" · +"+ch.bonus+" Bonus", true); }
   }
 
-  // log entry
   const entry={p, n:c.n, e:c.e, pts, t:Date.now(), golden:isGolden};
   state.data.log.unshift(entry); state.data.log=state.data.log.slice(0,60);
 
-  // Rang-Aufstieg? (lebenslang)
   const newRank=rankIndex(s.allTimePoints);
-  // achievements
   const newly=checkAchievements(p);
 
   save();
 
-  // FX
   if(btn){ ripple(btn,ev); btn.classList.remove("pop"); void btn.offsetWidth; btn.classList.add("pop"); }
   flash(ev, "+"+pts+(isGolden?" ✨":""), colorOf(p));
   if(isGolden) confettiBurst(ev?ev.clientX:innerWidth/2, ev?ev.clientY:innerHeight/2, 26);
@@ -574,10 +580,8 @@ function doChore(idx, ev, btn){
   render(); bumpScore(p);
   showUndo(entry);
 
-  if(newRank>prevRank){
-    const rk=RANKS[newRank];
-    celebrate(rk.e+"⬆️", "Neuer Rang!", PLAYERS[p].name+" ist jetzt „"+rk.name+"“", true);
-  }
+  if(newRank>prevRank){ const rk=RANKS[newRank];
+    celebrate(rk.e+"⬆️", "Neuer Rang!", PLAYERS[p].name+" ist jetzt „"+rk.name+"“", true); }
   newly.forEach(a=>celebrate(a.e, "Abzeichen freigeschaltet!", PLAYERS[p].name+": "+a.n+" – "+a.d, true));
 }
 
@@ -607,7 +611,7 @@ function ripple(btn, ev){
   btn.appendChild(sp); sp.style.animation="rippleAnim .5s ease-out"; setTimeout(()=>sp.remove(),520);
 }
 function confettiBurst(x,y,n){
-  const cols=["#fbbf24","#34d399","#38bdf8","#f472b6","#a78bfa","#fb7185"];
+  const cols=["#fbbf24","#34d399","#38bdf8","#f472b6","#a78bfa","#fb7185","#fb923c"];
   for(let i=0;i<n;i++){
     const el=document.createElement("div"); el.className="confetti";
     const sz=6+Math.random()*8; el.style.width=sz+"px"; el.style.height=(sz*1.4)+"px";
@@ -627,7 +631,6 @@ function bumpScore(p){
   el.classList.add("bump"); setTimeout(()=>el.classList.remove("bump"),160);
 }
 
-/* celebration queue */
 let celebQ=[], celebBusy=false;
 function celebrate(emoji,title,sub,burst){ celebQ.push({emoji,title,sub,burst}); if(!celebBusy) nextCeleb(); }
 function nextCeleb(){
@@ -642,7 +645,6 @@ function nextCeleb(){
   setTimeout(()=>{ card.style.animation="celebOut .35s ease forwards"; setTimeout(()=>{ wrap.remove(); nextCeleb(); },340); }, 1500);
 }
 
-/* Snackbar */
 let snackTimer=null;
 function showUndo(entry){
   const sb=document.getElementById("snackbar");
@@ -798,13 +800,13 @@ function renderTrophy(){
     <div class="trophy-grid">${ranklist}</div>
     <div class="btnrow"><button class="btn" id="trClose">Schließen</button></div>
     <button class="btn danger" id="trReset" style="width:100%;margin-top:10px;">🗑️ Punkte &amp; Abzeichen löschen</button>
-    <p style="text-align:center;margin:8px 0 0;font-size:12px;">Setzt für BEIDE Spieler alles auf Null (Punkte, Ränge, Abzeichen, Wochen-Historie). Aufgabenliste bleibt.</p>`;
+    <p style="text-align:center;margin:8px 0 0;font-size:12px;">Setzt für ALLE Spieler alles auf Null (Punkte, Ränge, Abzeichen, Wochen-Historie). Aufgabenliste bleibt.</p>`;
   m.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{ trophyTab=b.dataset.t; renderTrophy(); });
   m.querySelector("#trClose").onclick=()=>document.getElementById("trophyOverlay").classList.remove("show");
   m.querySelector("#trReset").onclick=resetAll;
 }
 function resetAll(){
-  if(!confirm("Wirklich ALLES löschen?\n\nPunkte, Ränge, Abzeichen und die komplette Wochen-Historie – für Koni UND Claude. Das kann nicht rückgängig gemacht werden.")) return;
+  if(!confirm("Wirklich ALLES löschen?\n\nPunkte, Ränge, Abzeichen und die komplette Wochen-Historie – für alle Spieler. Das kann nicht rückgängig gemacht werden.")) return;
   if(!confirm("Ganz sicher? Letzte Warnung – alles wird auf Null gesetzt.")) return;
   state.data=freshWeek();
   state.stats={}; PLAYER_IDS.forEach(p=>state.stats[p]=freshStats());
@@ -847,7 +849,7 @@ document.getElementById("weekBtn").onclick=()=>{
   }).join("")||'<div class="empty">Noch keine abgeschlossenen Wochen.</div>';
   const chips=PLAYER_IDS.map(p=>`<div class="chip" style="flex:1;justify-content:center;color:var(--${p});font-size:17px;">${PLAYERS[p].emoji} ${state.data[p].score}</div>`).join("");
   m.innerHTML=`<h2>🎁 Wochenstand</h2><p>${lead} · Wochensieger bekommt einen zufälligen Preis!</p>
-    <div style="display:flex;gap:10px;margin-bottom:16px;">${chips}</div>
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">${chips}</div>
     <div class="section-title" style="margin:4px;">Vergangene Wochen</div>${hist}
     <div class="btnrow"><button class="btn" id="wClose">Schließen</button><button class="btn danger" id="wReset">Woche jetzt beenden</button></div>`;
   document.getElementById("weekOverlay").classList.add("show");
