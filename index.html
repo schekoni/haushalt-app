@@ -803,16 +803,31 @@ function renderTrophy(){
     <p style="text-align:center;margin:8px 0 0;font-size:12px;">Setzt für ALLE Spieler alles auf Null (Punkte, Ränge, Abzeichen, Wochen-Historie). Aufgabenliste bleibt.</p>`;
   m.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{ trophyTab=b.dataset.t; renderTrophy(); });
   m.querySelector("#trClose").onclick=()=>document.getElementById("trophyOverlay").classList.remove("show");
-  m.querySelector("#trReset").onclick=resetAll;
+  m.querySelector("#trReset").onclick=()=>{ if(resetAll()) renderTrophy(); };
 }
 function resetAll(){
-  if(!confirm("Wirklich ALLES löschen?\n\nPunkte, Ränge, Abzeichen und die komplette Wochen-Historie – für alle Spieler. Das kann nicht rückgängig gemacht werden.")) return;
-  if(!confirm("Ganz sicher? Letzte Warnung – alles wird auf Null gesetzt.")) return;
+  if(!confirm("Wirklich ALLES löschen?\n\nPunkte, Ränge, Abzeichen und die komplette Wochen-Historie – für alle Spieler. Das kann nicht rückgängig gemacht werden.")) return false;
+  if(!confirm("Ganz sicher? Letzte Warnung – alles wird auf Null gesetzt.")) return false;
   state.data=freshWeek();
   state.stats={}; PLAYER_IDS.forEach(p=>state.stats[p]=freshStats());
   state.history=[];
-  save(); renderTrophy(); render();
-  celebrate("🧼","Zurückgesetzt","Alles steht wieder bei Null – viel Erfolg!", false);
+  save(); render();
+  celebrate("🧼","Zurückgesetzt","Punkte & Abzeichen stehen wieder bei Null!", false);
+  return true;
+}
+function resetEverything(){
+  if(!confirm("ALLES komplett zurücksetzen?\n\nPunkte, Ränge, Abzeichen, Wochen-Historie UND die Aufgabenliste werden auf den Auslieferungszustand gesetzt. Das kann nicht rückgängig gemacht werden.")) return;
+  if(!confirm("Ganz sicher? Wirklich alles auf Werkseinstellung?")) return;
+  state.data=freshWeek();
+  state.stats={}; PLAYER_IDS.forEach(p=>state.stats[p]=freshStats());
+  state.history=[];
+  state.chores=DEFAULT_CHORES.slice();
+  state.golden=null; state.goldenDay=null; state.challenge=null; state.challengeDate=null;
+  state.migrations={kidChores:true};
+  save(); ensureDaily();
+  document.getElementById("syncOverlay").classList.remove("show");
+  render();
+  celebrate("🧼","Komplett zurückgesetzt","Alles auf Anfang – viel Spaß!", false);
 }
 document.getElementById("trophyBtn").onclick=()=>{ trophyTab=active; renderTrophy(); document.getElementById("trophyOverlay").classList.add("show"); };
 
@@ -873,9 +888,15 @@ function openSync(){
       <input class="field" id="famInput" placeholder="z.B. whittaker" value="${code.replace(/"/g,'')}">
       <div class="btnrow"><button class="btn primary" id="famSave">Speichern &amp; verbinden</button></div>`
     :`<p>Trag oben im Code (FIREBASE_CONFIG) deine Firebase-Daten ein.</p>`}
+    <div class="section-title" style="margin:18px 4px 8px;">Zurücksetzen</div>
+    <button class="btn danger" id="resetScores" style="width:100%;margin-bottom:8px;">🧹 Punkte &amp; Abzeichen zurücksetzen</button>
+    <button class="btn danger" id="resetAllBtn" style="width:100%;">🗑️ Komplett zurücksetzen (inkl. Aufgabenliste)</button>
+    <p style="font-size:12px;margin:8px 0 0;">Gilt für alle Spieler &amp; alle Geräte (wird synchronisiert). Kann nicht rückgängig gemacht werden.</p>
     <div class="btnrow"><button class="btn" id="syncClose">Schließen</button></div>`;
   document.getElementById("syncOverlay").classList.add("show");
   document.getElementById("syncClose").onclick=()=>document.getElementById("syncOverlay").classList.remove("show");
+  document.getElementById("resetScores").onclick=()=>{ if(resetAll()) document.getElementById("syncOverlay").classList.remove("show"); };
+  document.getElementById("resetAllBtn").onclick=resetEverything;
   const fs=document.getElementById("famSave");
   if(fs) fs.onclick=()=>{ const v=document.getElementById("famInput").value.trim(); if(!v){alert("Bitte Code eingeben.");return;}
     setFamilyCode(v); location.reload(); };
