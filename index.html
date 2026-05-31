@@ -11,7 +11,7 @@
 <style>
   :root{
     --bg:#0f172a; --panel:#1e293b; --panel2:#273449;
-    --koni:#38bdf8; --claude:#f472b6;
+    --koni:#38bdf8; --claude:#f472b6; --jakob:#fb923c;
     --text:#e2e8f0; --muted:#94a3b8; --gold:#fbbf24;
     --green:#34d399; --radius:20px;
   }
@@ -38,7 +38,7 @@
   .syncdot.off{background:var(--muted);}
   .syncdot.err{background:#f87171;}
 
-  .board{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;}
+  .board{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:16px;}
   .player{
     background:var(--panel); border-radius:var(--radius); padding:16px; position:relative; overflow:hidden;
     border:2px solid transparent; transition:border-color .2s, transform .1s;
@@ -64,7 +64,7 @@
   .pscore{font-size:54px; font-weight:800; line-height:1; margin-top:6px; position:relative; font-variant-numeric:tabular-nums; transition:transform .15s;}
   .pscore.bump{transform:scale(1.12);}
   .pscore small{font-size:18px; color:var(--muted); font-weight:600;}
-  .koni{color:var(--koni);} .claude{color:var(--claude);}
+  .koni{color:var(--koni);} .claude{color:var(--claude);} .jakob{color:var(--jakob);}
   .bar{height:8px; background:rgba(255,255,255,.08); border-radius:6px; margin-top:12px; overflow:hidden; position:relative;}
   .bar > i{display:block; height:100%; background:currentColor; border-radius:6px; transition:width .4s ease;}
   .streak{font-size:12px; color:var(--muted); margin-top:8px; position:relative;}
@@ -80,6 +80,7 @@
   .toggle button.on{background:var(--panel2); color:var(--text);}
   .toggle button.on.koni{color:var(--koni); box-shadow:inset 0 0 0 2px var(--koni);}
   .toggle button.on.claude{color:var(--claude); box-shadow:inset 0 0 0 2px var(--claude);}
+  .toggle button.on.jakob{color:var(--jakob); box-shadow:inset 0 0 0 2px var(--jakob);}
 
   .section-title{font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin:18px 4px 10px;}
 
@@ -160,6 +161,7 @@
   .tabs button{flex:1; border:none; background:var(--panel2); color:var(--muted); padding:12px; border-radius:12px; font-weight:700; font-size:15px; cursor:pointer;}
   .tabs button.sel.koni{color:var(--koni); box-shadow:inset 0 0 0 2px var(--koni);}
   .tabs button.sel.claude{color:var(--claude); box-shadow:inset 0 0 0 2px var(--claude);}
+  .tabs button.sel.jakob{color:var(--jakob); box-shadow:inset 0 0 0 2px var(--jakob);}
   .tstat{display:flex; gap:8px; margin-bottom:14px;}
   .tstat .box{flex:1; background:var(--panel2); border-radius:12px; padding:10px; text-align:center;}
   .tstat .box b{display:block; font-size:20px;}
@@ -190,10 +192,7 @@
   <div class="board" id="board"></div>
 
   <div class="section-title">Wer macht die Aufgabe? (nur auf diesem Gerät)</div>
-  <div class="toggle" id="toggle">
-    <button data-p="koni" class="koni on">Koni</button>
-    <button data-p="claude" class="claude">Claude</button>
-  </div>
+  <div class="toggle" id="toggle"></div>
 
   <div id="challengeWrap"></div>
 
@@ -365,26 +364,36 @@ function isoWeek(d){
   const w=Math.ceil((((dt-ys)/86400000)+1)/7);
   return dt.getUTCFullYear()+"-W"+String(w).padStart(2,"0");
 }
+function freshPlayerWeek(){ return {score:0, total:0, streak:0, bestStreak:0, goldenDone:0, choreCounts:{}}; }
 function freshWeek(){
-  return {
-    koni:{score:0, total:0, streak:0, bestStreak:0, goldenDone:0, choreCounts:{}},
-    claude:{score:0, total:0, streak:0, bestStreak:0, goldenDone:0, choreCounts:{}},
-    log:[], lastBy:null,
-  };
+  const w={log:[], lastBy:null};
+  PLAYER_IDS.forEach(p=> w[p]=freshPlayerWeek());
+  return w;
 }
 function freshStats(){ return {allTimeTotal:0, allTimePoints:0, challengesDone:0, dayStreak:0, bestDayStreak:0,
                               lastDay:null, earlyBird:false, nightOwl:false, achieved:[]}; }
 function ensureShape(s){
   s.chores = s.chores || DEFAULT_CHORES.slice();
   s.data = s.data || freshWeek();
-  for(const p of ["koni","claude"]){
-    const d=s.data[p]; if(d){ if(d.bestStreak==null)d.bestStreak=0; if(d.goldenDone==null)d.goldenDone=0; if(!d.choreCounts)d.choreCounts={}; }
+  s.stats = s.stats || {};
+  for(const p of PLAYER_IDS){
+    if(!s.data[p]) s.data[p]=freshPlayerWeek();
+    const d=s.data[p]; if(d.bestStreak==null)d.bestStreak=0; if(d.goldenDone==null)d.goldenDone=0; if(!d.choreCounts)d.choreCounts={};
+    s.stats[p] = Object.assign(freshStats(), s.stats[p]||{}); if(!Array.isArray(s.stats[p].achieved)) s.stats[p].achieved=[];
   }
   s.history = s.history || [];
-  s.stats = s.stats || {};
-  for(const p of ["koni","claude"]){ s.stats[p] = Object.assign(freshStats(), s.stats[p]||{}); if(!Array.isArray(s.stats[p].achieved)) s.stats[p].achieved=[]; }
+  s.migrations = s.migrations || {};
   if(typeof s.rev!=="number") s.rev=0;
   return s;
+}
+/* Einmalige Datenmigrationen (idempotent, Flag wird synchronisiert) */
+function runMigrations(){
+  let changed=false;
+  if(!state.migrations.kidChores){
+    KID_CHORES.forEach(kc=>{ if(!state.chores.some(c=>c.n===kc.n)) state.chores.push(kc); });
+    state.migrations.kidChores=true; changed=true;
+  }
+  if(changed) save();
 }
 function load(){
   let s; try{ s=JSON.parse(localStorage.getItem(LS)); }catch(e){}
@@ -428,6 +437,7 @@ async function initSync(){
       state.challenge=(r.challenge===undefined?state.challenge:r.challenge);
       state.challengeDate=r.challengeDate||state.challengeDate;
       state.stats=r.stats||state.stats;
+      state.migrations=r.migrations||state.migrations;
       state.rev=r.rev||state.rev;
       ensureShape(state);
       localStorage.setItem(LS, JSON.stringify(state));
@@ -441,7 +451,7 @@ function snapshotForCloud(){
   return {chores:state.chores, week:state.week, data:state.data, history:state.history,
           golden:state.golden??null, goldenDay:state.goldenDay??null,
           challenge:state.challenge??null, challengeDate:state.challengeDate??null,
-          stats:state.stats, rev:state.rev||0, updatedAt:Date.now()};
+          stats:state.stats, migrations:state.migrations||{}, rev:state.rev||0, updatedAt:Date.now()};
 }
 async function pushNow(){
   if(!docRef||!fbSetDoc||applyingRemote) return;
@@ -454,13 +464,12 @@ function queueSync(){ if(!docRef||applyingRemote) return; clearTimeout(saveTimer
 function checkWeek(){
   const now=isoWeek(new Date());
   if(state.week!==now){
-    const d=state.data;
-    const winner = d.koni.score===d.claude.score ? "tie" : (d.koni.score>d.claude.score?"koni":"claude");
-    state.history.unshift({week:state.week, koni:d.koni.score, claude:d.claude.score, winner, reward:pickReward()});
+    const scores=currentScores();
+    state.history.unshift({week:state.week, scores, winner:weekWinner(scores), reward:pickReward()});
     state.history=state.history.slice(0,30);
     state.week=now; state.data=freshWeek();
     // Sieg-Trophäen sofort prüfen
-    ["koni","claude"].forEach(p=>checkAchievements(p));
+    PLAYER_IDS.forEach(p=>checkAchievements(p));
     save();
     showWeekResult(state.history[0], true);
   }
@@ -493,6 +502,9 @@ function rankIndex(pts){ let i=0; for(let k=0;k<RANKS.length;k++) if((pts||0)>=R
 function rankOf(pts){ return RANKS[rankIndex(pts)]; }
 function nextRank(pts){ const i=rankIndex(pts); return i<RANKS.length-1? RANKS[i+1] : null; }
 function winsOf(p){ return state.history.filter(h=>h.winner===p).length; }
+function histScore(h,p){ return h.scores ? (h.scores[p]||0) : (h[p]||0); }
+function currentScores(){ const m={}; PLAYER_IDS.forEach(p=>m[p]=state.data[p].score); return m; }
+function weekWinner(scoreMap){ let mx=-1, w=[]; PLAYER_IDS.forEach(p=>{ const v=scoreMap[p]||0; if(v>mx){mx=v;w=[p];} else if(v===mx) w.push(p); }); return (mx<=0||w.length>1)?"tie":w[0]; }
 
 function checkAchievements(p){
   const w=state.data[p], s=state.stats[p], wins=winsOf(p);
@@ -539,7 +551,7 @@ function doChore(idx, ev, btn){
     else if(ch.type==="golden") done=isGolden;
     else if(ch.type==="streak") done=d.streak>=ch.goal;
     if(done){ ch.doneBy=p; d.score+=ch.bonus; s.allTimePoints+=ch.bonus; s.challengesDone++;
-      flash(ev,"+"+ch.bonus+" 🎯", p==="koni"?"var(--koni)":"var(--claude)");
+      flash(ev,"+"+ch.bonus+" 🎯", colorOf(p));
       celebrate("🎯","Challenge geschafft!", ch.txt+" · +"+ch.bonus+" Bonus", true); }
   }
 
@@ -556,7 +568,7 @@ function doChore(idx, ev, btn){
 
   // FX
   if(btn){ ripple(btn,ev); btn.classList.remove("pop"); void btn.offsetWidth; btn.classList.add("pop"); }
-  flash(ev, "+"+pts+(isGolden?" ✨":""), p==="koni"?"var(--koni)":"var(--claude)");
+  flash(ev, "+"+pts+(isGolden?" ✨":""), colorOf(p));
   if(isGolden) confettiBurst(ev?ev.clientX:innerWidth/2, ev?ev.clientY:innerHeight/2, 26);
   if(navigator.vibrate) navigator.vibrate(isGolden?[20,40,20]:15);
   render(); bumpScore(p);
@@ -645,14 +657,15 @@ function hideSnack(){ document.getElementById("snackbar").classList.remove("show
 function medalsFor(p){ return state.stats[p].achieved.map(id=>{ const a=ACHIEVEMENTS.find(x=>x.id===id); return a?a.e:""; }).filter(Boolean); }
 function renderBoard(){
   const board=document.getElementById("board");
-  const ks=state.data.koni.score, cs=state.data.claude.score;
-  const max=Math.max(ks,cs,1);
+  const scores=currentScores();
+  const max=Math.max(...PLAYER_IDS.map(p=>scores[p]),1);
+  const topWinner=weekWinner(scores);
   board.innerHTML="";
-  for(const key of ["koni","claude"]){
+  for(const key of PLAYER_IDS){
     const P=PLAYERS[key], d=state.data[key], s=state.stats[key];
     const lp=s.allTimePoints||0, rk=rankOf(lp), nr=nextRank(lp);
     const rankPct = nr? Math.min(100, Math.max(0,((lp-rk.min)/(nr.min-rk.min))*100)) : 100;
-    const pct=Math.min(100,(d.score/max)*100), leading=(key==="koni"?ks>cs:cs>ks)&&d.score>0;
+    const pct=Math.min(100,(d.score/max)*100), leading=(key===topWinner)&&d.score>0;
     const meds=medalsFor(key); const shown=meds.slice(0,7).join(" "); const extra=meds.length>7?` <span class="more">+${meds.length-7}</span>`:"";
     const div=document.createElement("div"); div.className="player "+P.cls+(active===key?" active":"");
     div.innerHTML=`
@@ -673,7 +686,16 @@ function renderBoard(){
     board.appendChild(div);
   }
 }
-function renderToggle(){ document.querySelectorAll("#toggle button").forEach(b=>b.classList.toggle("on", b.dataset.p===active)); }
+function renderToggle(){
+  const t=document.getElementById("toggle"); t.innerHTML="";
+  PLAYER_IDS.forEach(p=>{
+    const b=document.createElement("button");
+    b.className=PLAYERS[p].cls+(active===p?" on":"");
+    b.textContent=PLAYERS[p].emoji+" "+PLAYERS[p].name;
+    b.onclick=()=>{ setActive(p); render(); };
+    t.appendChild(b);
+  });
+}
 function renderChallenge(){
   const w=document.getElementById("challengeWrap"), ch=state.challenge; if(!ch){w.innerHTML="";return;}
   w.innerHTML=`<div class="section-title">Tages-Challenge</div>
@@ -704,7 +726,7 @@ function renderLog(){
   if(!state.data.log.length){ log.innerHTML='<div class="empty">Noch keine Aufgaben erledigt. Leg los! 💪</div>'; return; }
   log.innerHTML="";
   state.data.log.forEach(e=>{
-    const color=e.p==="koni"?"var(--koni)":"var(--claude)";
+    const color=colorOf(e.p);
     const row=document.createElement("div"); row.className="row";
     row.innerHTML=`<span class="who" style="background:${color}"></span>
       <span>${e.e} ${e.n} ${e.golden?"✨":""}</span>
@@ -757,8 +779,7 @@ function renderTrophy(){
   }).join("");
   m.innerHTML=`<h2>🏅 Trophäen &amp; Ränge</h2>
     <div class="tabs">
-      <button class="koni ${p==="koni"?"sel":""}" data-t="koni">🧔 Koni</button>
-      <button class="claude ${p==="claude"?"sel":""}" data-t="claude">👩 Claude</button>
+      ${PLAYER_IDS.map(id=>`<button class="${PLAYERS[id].cls} ${p===id?"sel":""}" data-t="${id}">${PLAYERS[id].emoji} ${PLAYERS[id].name}</button>`).join("")}
     </div>
     <div style="display:flex;justify-content:center;margin:6px 0 12px;">${avatarHTML(p, rankIndex(lp), 84)}</div>
     <div style="text-align:center;font-size:19px;font-weight:800;margin-bottom:6px;">${rk.e} ${rk.name}</div>
@@ -786,7 +807,7 @@ function resetAll(){
   if(!confirm("Wirklich ALLES löschen?\n\nPunkte, Ränge, Abzeichen und die komplette Wochen-Historie – für Koni UND Claude. Das kann nicht rückgängig gemacht werden.")) return;
   if(!confirm("Ganz sicher? Letzte Warnung – alles wird auf Null gesetzt.")) return;
   state.data=freshWeek();
-  state.stats={koni:freshStats(), claude:freshStats()};
+  state.stats={}; PLAYER_IDS.forEach(p=>state.stats[p]=freshStats());
   state.history=[];
   save(); renderTrophy(); render();
   celebrate("🧼","Zurückgesetzt","Alles steht wieder bei Null – viel Erfolg!", false);
@@ -799,9 +820,10 @@ function showWeekResult(h, auto){
   let winHtml; if(h.winner==="tie") winHtml=`<div class="winner">🤝 Unentschieden!</div>`;
   else{ const P=PLAYERS[h.winner]; winHtml=`<div class="big">${P.emoji}🏆</div><div class="winner">${P.name} gewinnt!</div>`; }
   const rw=h.reward||pickReward();
-  const forWho = h.winner==="tie" ? "für beide 💕" : "für "+PLAYERS[h.winner].name;
+  const forWho = h.winner==="tie" ? "für alle 💕" : "für "+PLAYERS[h.winner].name;
+  const scoreLine = PLAYER_IDS.map(p=>PLAYERS[p].name+" "+histScore(h,p)).join(" · ");
   m.innerHTML=`${auto?'<p style="text-align:center">Neue Woche gestartet 🎉</p>':''}${winHtml}
-    <div class="sub">${h.week.replace("-W"," KW ")}<br>Koni ${h.koni} · Claude ${h.claude}</div>
+    <div class="sub">${h.week.replace("-W"," KW ")}<br>${scoreLine}</div>
     <div style="background:var(--panel2);border:2px solid var(--gold);border-radius:16px;padding:16px;margin-bottom:16px;text-align:center;">
       <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;">🎁 Zufälliger Wochenpreis ${forWho}</div>
       <div style="font-size:40px;line-height:1;margin:4px 0;">${rw.e}</div>
@@ -815,27 +837,27 @@ function showWeekResult(h, auto){
   if(h.winner!=="tie") confettiBurst(innerWidth/2, innerHeight*0.35, 60);
 }
 document.getElementById("weekBtn").onclick=()=>{
-  const m=document.getElementById("weekModal"), d=state.data;
-  const lead=d.koni.score===d.claude.score?"Gleichstand":(d.koni.score>d.claude.score?"Koni führt":"Claude führt");
+  const m=document.getElementById("weekModal");
+  const wn=weekWinner(currentScores());
+  const lead = wn==="tie" ? "Gleichstand" : PLAYERS[wn].name+" führt";
   const hist=state.history.map(h=>{ const w=h.winner==="tie"?"🤝":PLAYERS[h.winner].emoji;
-    return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:14px;">
-      <span>${h.week.replace("-W"," KW ")} ${h.reward?h.reward.e:""}</span><span>K ${h.koni} · C ${h.claude} ${w}</span></div>`;
+    const sc=PLAYER_IDS.map(p=>PLAYERS[p].name[0]+" "+histScore(h,p)).join(" · ");
+    return `<div style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:14px;">
+      <span>${h.week.replace("-W"," KW ")} ${h.reward?h.reward.e:""}</span><span>${sc} ${w}</span></div>`;
   }).join("")||'<div class="empty">Noch keine abgeschlossenen Wochen.</div>';
-  m.innerHTML=`<h2>🎁 Wochenstand</h2><p>${lead} · Wochensieger sucht sich den Preis aus!</p>
-    <div style="display:flex;gap:10px;margin-bottom:16px;">
-      <div class="chip" style="flex:1;justify-content:center;color:var(--koni);font-size:17px;">🧔 ${d.koni.score}</div>
-      <div class="chip" style="flex:1;justify-content:center;color:var(--claude);font-size:17px;">👩 ${d.claude.score}</div>
-    </div>
+  const chips=PLAYER_IDS.map(p=>`<div class="chip" style="flex:1;justify-content:center;color:var(--${p});font-size:17px;">${PLAYERS[p].emoji} ${state.data[p].score}</div>`).join("");
+  m.innerHTML=`<h2>🎁 Wochenstand</h2><p>${lead} · Wochensieger bekommt einen zufälligen Preis!</p>
+    <div style="display:flex;gap:10px;margin-bottom:16px;">${chips}</div>
     <div class="section-title" style="margin:4px;">Vergangene Wochen</div>${hist}
     <div class="btnrow"><button class="btn" id="wClose">Schließen</button><button class="btn danger" id="wReset">Woche jetzt beenden</button></div>`;
   document.getElementById("weekOverlay").classList.add("show");
   document.getElementById("wClose").onclick=()=>document.getElementById("weekOverlay").classList.remove("show");
   document.getElementById("wReset").onclick=()=>{
     if(!confirm("Aktuelle Woche beenden und Sieger küren? Punkte werden zurückgesetzt.")) return;
-    const dd=state.data, winner=dd.koni.score===dd.claude.score?"tie":(dd.koni.score>dd.claude.score?"koni":"claude");
-    state.history.unshift({week:state.week, koni:dd.koni.score, claude:dd.claude.score, winner, reward:pickReward()});
+    const scores=currentScores();
+    state.history.unshift({week:state.week, scores, winner:weekWinner(scores), reward:pickReward()});
     state.history=state.history.slice(0,30);
-    state.data=freshWeek(); ["koni","claude"].forEach(p=>checkAchievements(p)); save();
+    state.data=freshWeek(); PLAYER_IDS.forEach(p=>checkAchievements(p)); save();
     showWeekResult(state.history[0], false);
   };
 };
@@ -859,10 +881,9 @@ function openSync(){
 document.getElementById("syncBtn").onclick=()=>openSync();
 
 document.querySelectorAll(".overlay").forEach(o=>o.onclick=(e)=>{ if(e.target===o) o.classList.remove("show"); });
-document.querySelectorAll("#toggle button").forEach(b=>b.onclick=()=>{ setActive(b.dataset.p); render(); });
 
 /* ---------- Boot ---------- */
-checkWeek(); ensureDaily(); render(); initSync();
+checkWeek(); ensureDaily(); runMigrations(); render(); initSync();
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ checkWeek(); ensureDaily(); render(); }});
 </script>
 </body>
