@@ -47,6 +47,18 @@
   .player .glow{position:absolute; inset:0; opacity:.10; background:currentColor;}
   .player .top{display:flex; align-items:center; gap:10px; position:relative;}
   .avatar{width:46px; height:46px; border-radius:50%; display:grid; place-items:center; font-size:26px; background:rgba(255,255,255,.08);}
+  /* Rang-Avatar (steigt mit jedem Rang auf) */
+  .av{position:relative; flex-shrink:0;}
+  .av .ring{position:absolute; inset:0; border-radius:50%; background:var(--ring,#475569); box-shadow:var(--glow,none);}
+  .av .face{position:absolute; inset:3px; border-radius:50%; background:#1b2536; display:grid; place-items:center;}
+  .av.spin .ring{animation:spin 6s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .av.aura .ring{animation:spin 6s linear infinite, auraPulse 1.8s ease-in-out infinite;}
+  @keyframes auraPulse{0%,100%{box-shadow:0 0 14px 2px rgba(255,255,255,.4)}50%{box-shadow:0 0 30px 8px rgba(255,255,255,.75)}}
+  .av .crown{position:absolute; top:-13px; left:50%; transform:translateX(-50%); font-size:18px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.5)); z-index:3;}
+  .av .deco{position:absolute; bottom:-4px; right:-4px; font-size:16px; background:#0f172a; border-radius:50%; padding:1px 2px; z-index:3;}
+  .av .spark{position:absolute; top:-8px; right:-8px; font-size:15px; animation:sparkle 1.4s ease-in-out infinite; z-index:3;}
+  @keyframes sparkle{0%,100%{opacity:.4; transform:scale(.8) rotate(0)}50%{opacity:1; transform:scale(1.2) rotate(20deg)}}
   .pname{font-size:18px; font-weight:700;}
   .plevel{font-size:12px; color:var(--muted);}
   .pscore{font-size:54px; font-weight:800; line-height:1; margin-top:6px; position:relative; font-variant-numeric:tabular-nums; transition:transform .15s;}
@@ -259,6 +271,32 @@ const RANKS = [
   {min:15000, e:"🏆", name:"Großmeister der Sauberkeit"},
   {min:22000, e:"⚡", name:"Haushalts-Gott"},
 ];
+/* Avatar-Stufen: werden mit jedem Rang hochwertiger (Ring, Glow, Krone, Funkeln) */
+const AVATAR_TIERS = [
+  {ring:"#475569", glow:"none"},                                                                 // 0 Frischling – schlicht
+  {ring:"#b45309", glow:"none"},                                                                 // 1 Helferlein – Bronze
+  {ring:"linear-gradient(135deg,#d97706,#b45309)", glow:"none", deco:"🧢"},                       // 2 Putzhilfe
+  {ring:"#9ca3af", glow:"none"},                                                                 // 3 Guter Saubermacher – Silber
+  {ring:"linear-gradient(135deg,#e5e7eb,#9ca3af)", glow:"0 0 10px rgba(229,231,235,.45)"},        // 4 Ordnungstalent – Silber+Glow
+  {ring:"linear-gradient(135deg,#fbbf24,#d97706)", glow:"0 0 12px rgba(251,191,36,.5)"},          // 5 Haushaltsheld – Gold
+  {ring:"linear-gradient(135deg,#fde047,#f59e0b)", glow:"0 0 14px rgba(251,191,36,.6)", deco:"🎩"},// 6 Putz-Profi
+  {ring:"linear-gradient(135deg,#fde047,#f59e0b)", glow:"0 0 18px rgba(251,191,36,.7)", deco:"🎖️"},// 7 Saubermeister
+  {ring:"linear-gradient(135deg,#fbbf24,#f59e0b)", glow:"0 0 18px rgba(251,191,36,.75)", crown:true}, // 8 Haushalts-Boss – Krone
+  {ring:"linear-gradient(135deg,#67e8f9,#22d3ee,#38bdf8)", glow:"0 0 22px rgba(34,211,238,.75)", crown:true}, // 9 Legende – Diamant
+  {ring:"conic-gradient(#f472b6,#fbbf24,#34d399,#38bdf8,#a78bfa,#f472b6)", glow:"0 0 24px rgba(167,139,250,.7)", crown:true, spark:true, spin:true}, // 10 Großmeister – Regenbogen
+  {ring:"conic-gradient(#f472b6,#fbbf24,#34d399,#38bdf8,#a78bfa,#f472b6)", glow:"none", crown:true, spark:true, spin:true, aura:true}, // 11 Haushalts-Gott – Aura
+];
+function avatarHTML(player, rankIdx, size){
+  const t=AVATAR_TIERS[Math.min(Math.max(rankIdx,0),AVATAR_TIERS.length-1)];
+  const sz=size||54, cls="av"+(t.spin?" spin":"")+(t.aura?" aura":"");
+  return `<div class="${cls}" style="width:${sz}px;height:${sz}px;--ring:${t.ring};--glow:${t.glow||'none'};">
+    <div class="ring"></div>
+    <div class="face" style="font-size:${Math.round(sz*0.5)}px">${PLAYERS[player].emoji}</div>
+    ${t.crown?'<div class="crown">👑</div>':''}
+    ${t.deco?`<div class="deco">${t.deco}</div>`:''}
+    ${t.spark?'<div class="spark">✨</div>':''}
+  </div>`;
+}
 
 /* Achievements: test(w=Wochendaten, s=Lifetime-Stats, h=History, wins) */
 const ACHIEVEMENTS = [
@@ -596,7 +634,7 @@ function renderBoard(){
       <div class="glow"></div>
       ${leading?'<div class="crown">👑</div>':''}
       <div class="top">
-        <div class="avatar">${P.emoji}</div>
+        ${avatarHTML(key, rankIndex(lp), 54)}
         <div><div class="pname">${P.name}</div>
           <div class="plevel">${rk.e} ${rk.name}</div></div>
       </div>
@@ -697,6 +735,7 @@ function renderTrophy(){
       <button class="koni ${p==="koni"?"sel":""}" data-t="koni">🧔 Koni</button>
       <button class="claude ${p==="claude"?"sel":""}" data-t="claude">👩 Claude</button>
     </div>
+    <div style="display:flex;justify-content:center;margin:6px 0 12px;">${avatarHTML(p, rankIndex(lp), 84)}</div>
     <div style="text-align:center;font-size:19px;font-weight:800;margin-bottom:6px;">${rk.e} ${rk.name}</div>
     <div style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:6px;">
       ${lp} Punkte gesamt${nr?` · noch ${nr.min-lp} bis ${nr.e} ${nr.name}`:` · höchster Rang erreicht! 🏆`}</div>
