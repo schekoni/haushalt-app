@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Haushalt">
+<meta name="theme-color" content="#0f172a">
+<title>Haushalts-Punkte</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#1e293b; --panel2:#273449;
+    --koni:#38bdf8; --claude:#f472b6;
+    --text:#e2e8f0; --muted:#94a3b8; --gold:#fbbf24;
+    --green:#34d399; --radius:20px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none;}
+  html,body{margin:0; height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro","Segoe UI",sans-serif;
+    background:radial-gradient(1200px 800px at 70% -10%,#1e3a5f 0%,var(--bg) 55%);
+    color:var(--text);
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    overflow-x:hidden;
+  }
+  .wrap{max-width:1100px; margin:0 auto; padding:18px 18px 90px;}
+
+  header{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px;}
+  h1{font-size:22px; margin:0; letter-spacing:.3px;}
+  .week{font-size:13px; color:var(--muted);}
+  .iconbtn{background:var(--panel); border:none; color:var(--text); border-radius:14px; padding:10px 14px; font-size:15px; cursor:pointer;}
+  .iconbtn:active{transform:scale(.95);}
+  .hbtns{display:flex; gap:8px; flex-wrap:wrap;}
+
+  .syncdot{display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--muted); margin-right:6px; vertical-align:middle;}
+  .syncdot.on{background:var(--green); box-shadow:0 0 8px var(--green);}
+  .syncdot.off{background:var(--muted);}
+  .syncdot.err{background:#f87171;}
+
+  .board{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;}
+  .player{
+    background:var(--panel); border-radius:var(--radius); padding:16px; position:relative; overflow:hidden;
+    border:2px solid transparent; transition:border-color .2s, transform .1s;
+  }
+  .player.active{border-color:currentColor; box-shadow:0 0 0 4px rgba(255,255,255,.04), 0 8px 30px rgba(0,0,0,.35);}
+  .player .glow{position:absolute; inset:0; opacity:.10; background:currentColor;}
+  .player .top{display:flex; align-items:center; gap:10px; position:relative;}
+  .avatar{width:46px; height:46px; border-radius:50%; display:grid; place-items:center; font-size:26px; background:rgba(255,255,255,.08);}
+  .pname{font-size:18px; font-weight:700;}
+  .plevel{font-size:12px; color:var(--muted);}
+  .pscore{font-size:54px; font-weight:800; line-height:1; margin-top:6px; position:relative; font-variant-numeric:tabular-nums; transition:transform .15s;}
+  .pscore.bump{transform:scale(1.12);}
+  .pscore small{font-size:18px; color:var(--muted); font-weight:600;}
+  .koni{color:var(--koni);} .claude{color:var(--claude);}
+  .bar{height:8px; background:rgba(255,255,255,.08); border-radius:6px; margin-top:12px; overflow:hidden; position:relative;}
+  .bar > i{display:block; height:100%; background:currentColor; border-radius:6px; transition:width .4s ease;}
+  .streak{font-size:12px; color:var(--muted); margin-top:8px; position:relative;}
+  .crown{position:absolute; top:12px; right:14px; font-size:24px; animation:bobble 2s ease-in-out infinite;}
+  @keyframes bobble{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-4px) rotate(6deg)}}
+  .medals{font-size:18px; margin-top:8px; position:relative; line-height:1.5; letter-spacing:1px;}
+  .medals .more{font-size:12px; color:var(--muted);}
+
+  .toggle{display:flex; background:var(--panel); border-radius:18px; padding:6px; margin-bottom:18px; gap:6px;}
+  .toggle button{flex:1; border:none; background:transparent; color:var(--muted); font-size:17px; font-weight:700; padding:14px; border-radius:13px; cursor:pointer; transition:.2s;}
+  .toggle button.on{background:var(--panel2); color:var(--text);}
+  .toggle button.on.koni{color:var(--koni); box-shadow:inset 0 0 0 2px var(--koni);}
+  .toggle button.on.claude{color:var(--claude); box-shadow:inset 0 0 0 2px var(--claude);}
+
+  .section-title{font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin:18px 4px 10px;}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px;}
+  .chore{
+    background:var(--panel); border:none; color:var(--text); border-radius:var(--radius);
+    padding:16px 12px; cursor:pointer; text-align:center; position:relative; min-height:120px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    transition:transform .08s, box-shadow .2s; overflow:hidden;
+  }
+  .chore:active{transform:scale(.94);}
+  .chore.pop{animation:pop .4s cubic-bezier(.2,1.6,.4,1);}
+  @keyframes pop{0%{transform:scale(1)}35%{transform:scale(1.1); box-shadow:0 0 0 3px var(--green)}100%{transform:scale(1)}}
+  .chore .emoji{font-size:34px; transition:transform .3s;}
+  .chore.pop .emoji{animation:wiggle .4s ease;}
+  @keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-12deg) scale(1.15)}75%{transform:rotate(12deg) scale(1.15)}}
+  .chore .cname{font-size:15px; font-weight:600; line-height:1.2;}
+  .chore .pts{font-size:13px; color:var(--gold); font-weight:700;}
+  .chore.golden{box-shadow:inset 0 0 0 2px var(--gold); background:linear-gradient(180deg,#3a2f12,#1e293b); animation:goldpulse 2s ease-in-out infinite;}
+  @keyframes goldpulse{0%,100%{box-shadow:inset 0 0 0 2px var(--gold), 0 0 0 0 rgba(251,191,36,.0)}50%{box-shadow:inset 0 0 0 2px var(--gold), 0 0 16px 2px rgba(251,191,36,.35)}}
+  .chore .badge{position:absolute; top:6px; right:8px; font-size:11px; background:var(--gold); color:#3a2a06; font-weight:800; padding:2px 7px; border-radius:20px;}
+  .ripple{position:absolute; border-radius:50%; background:rgba(255,255,255,.35); transform:scale(0); pointer-events:none; width:120px; height:120px; margin:-60px 0 0 -60px;}
+  @keyframes rippleAnim{to{transform:scale(3); opacity:0}}
+
+  .float{position:fixed; font-size:30px; font-weight:800; pointer-events:none; z-index:50; animation:floatUp 1s ease-out forwards;}
+  @keyframes floatUp{0%{opacity:0; transform:translateY(0) scale(.6);}15%{opacity:1; transform:translateY(-10px) scale(1.2);}100%{opacity:0; transform:translateY(-90px) scale(1);}}
+
+  .confetti{position:fixed; pointer-events:none; z-index:120; border-radius:2px;}
+
+  .log{background:var(--panel); border-radius:var(--radius); padding:6px 4px; max-height:260px; overflow-y:auto;}
+  .log .row{display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid rgba(255,255,255,.05); font-size:14px;}
+  .log .row:last-child{border-bottom:none;}
+  .log .who{width:8px; height:8px; border-radius:50%; flex-shrink:0;}
+  .log .row .t{color:var(--muted); font-size:12px; margin-left:auto;}
+  .log .undo{background:none; border:none; color:var(--muted); font-size:18px; cursor:pointer; padding:4px 6px;}
+  .empty{color:var(--muted); text-align:center; padding:24px; font-size:14px;}
+
+  /* Snackbar (Rückgängig) */
+  .snackbar{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom)); transform:translate(-50%,140px);
+    background:var(--panel2); color:var(--text); padding:12px 14px 12px 16px; border-radius:16px; display:flex; gap:14px;
+    align-items:center; box-shadow:0 12px 34px rgba(0,0,0,.5); z-index:80; max-width:92%; font-size:14px; opacity:0; transition:transform .3s, opacity .3s;}
+  .snackbar.show{transform:translate(-50%,0); opacity:1;}
+  .snackbar b{font-weight:700;}
+  .snackbar button{background:var(--green); color:#06281c; border:none; border-radius:11px; padding:9px 14px; font-weight:800; font-size:14px; cursor:pointer; white-space:nowrap;}
+
+  /* Celebration */
+  .celebrate{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:110;}
+  .celebrate .card{background:var(--panel); border:2px solid var(--gold); border-radius:22px; padding:22px 30px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.55);}
+  .celebrate .ce{font-size:60px; line-height:1;}
+  .celebrate .ct{font-size:22px; font-weight:800; margin-top:8px;}
+  .celebrate .cs{font-size:14px; color:var(--muted); margin-top:4px;}
+  @keyframes celebIn{0%{transform:scale(.5); opacity:0}60%{transform:scale(1.06)}100%{transform:scale(1); opacity:1}}
+  @keyframes celebOut{to{opacity:0; transform:scale(.9)}}
+
+  .overlay{position:fixed; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; z-index:100; padding:20px;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--panel); border-radius:24px; padding:24px; max-width:480px; width:100%; max-height:85vh; overflow-y:auto;}
+  .modal h2{margin:0 0 6px; font-size:22px;}
+  .modal p{color:var(--muted); font-size:14px; margin:0 0 16px;}
+  .modal .big{font-size:64px; text-align:center; margin:10px 0;}
+  .modal .winner{text-align:center; font-size:26px; font-weight:800; margin-bottom:6px;}
+  .modal .sub{text-align:center; color:var(--muted); margin-bottom:18px;}
+  .btnrow{display:flex; gap:10px; margin-top:14px;}
+  .btn{flex:1; border:none; border-radius:14px; padding:14px; font-size:16px; font-weight:700; cursor:pointer; background:var(--panel2); color:var(--text);}
+  .btn.primary{background:var(--green); color:#06281c;}
+  .btn.danger{background:#7f1d1d; color:#fecaca;}
+  .chip{display:inline-flex; align-items:center; gap:6px; background:var(--panel2); padding:8px 12px; border-radius:12px; margin:4px 4px 0 0; font-size:14px;}
+
+  .editrow{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
+  .editrow input{background:var(--panel2); border:1px solid rgba(255,255,255,.1); color:var(--text); border-radius:10px; padding:10px; font-size:15px;}
+  .editrow input.em{width:54px; text-align:center;} .editrow input.nm{flex:1;} .editrow input.pt{width:64px;}
+  .editrow .del{background:#7f1d1d; color:#fecaca; border:none; border-radius:10px; padding:10px 12px; cursor:pointer;}
+  .addbtn{width:100%; border:1px dashed rgba(255,255,255,.2); background:transparent; color:var(--muted); border-radius:12px; padding:12px; cursor:pointer; font-size:15px; margin-top:6px;}
+  .field{width:100%; background:var(--panel2); border:1px solid rgba(255,255,255,.1); color:var(--text); border-radius:12px; padding:14px; font-size:17px; margin-bottom:10px;}
+
+  /* Trophy room */
+  .tabs{display:flex; gap:6px; margin-bottom:14px;}
+  .tabs button{flex:1; border:none; background:var(--panel2); color:var(--muted); padding:12px; border-radius:12px; font-weight:700; font-size:15px; cursor:pointer;}
+  .tabs button.sel.koni{color:var(--koni); box-shadow:inset 0 0 0 2px var(--koni);}
+  .tabs button.sel.claude{color:var(--claude); box-shadow:inset 0 0 0 2px var(--claude);}
+  .tstat{display:flex; gap:8px; margin-bottom:14px;}
+  .tstat .box{flex:1; background:var(--panel2); border-radius:12px; padding:10px; text-align:center;}
+  .tstat .box b{display:block; font-size:20px;}
+  .tstat .box span{font-size:11px; color:var(--muted);}
+  .trophy-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(94px,1fr)); gap:10px;}
+  .trophy{background:var(--panel2); border-radius:14px; padding:12px 6px; text-align:center;}
+  .trophy .te{font-size:30px;}
+  .trophy .tn{font-size:11px; font-weight:700; margin-top:4px;}
+  .trophy .td{font-size:10px; color:var(--muted); margin-top:2px; line-height:1.2;}
+  .trophy.locked{opacity:.32; filter:grayscale(1);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>🏆 Haushalts-Punkte</h1>
+      <div class="week" id="weekLabel"></div>
+    </div>
+    <div class="hbtns">
+      <button class="iconbtn" id="syncBtn"><span class="syncdot off" id="syncDot"></span>Sync</button>
+      <button class="iconbtn" id="trophyBtn">🏅 Trophäen</button>
+      <button class="iconbtn" id="editBtn">✏️ Aufgaben</button>
+      <button class="iconbtn" id="weekBtn">🎁 Woche</button>
+    </div>
+  </header>
+
+  <div class="board" id="board"></div>
+
+  <div class="section-title">Wer macht die Aufgabe? (nur auf diesem Gerät)</div>
+  <div class="toggle" id="toggle">
+    <button data-p="koni" class="koni on">Koni</button>
+    <button data-p="claude" class="claude">Claude</button>
+  </div>
+
+  <div id="challengeWrap"></div>
+
+  <div class="section-title">Aufgaben antippen = Punkte</div>
+  <div class="grid" id="grid"></div>
+
+  <div class="section-title">Verlauf</div>
+  <div class="log" id="log"></div>
+</div>
+
+<div class="snackbar" id="snackbar"></div>
+
+<div class="overlay" id="editOverlay">
+  <div class="modal">
+    <h2>Aufgaben bearbeiten</h2>
+    <p>Emoji, Name und Punkte. Änderungen werden sofort gespeichert &amp; synchronisiert.</p>
+    <div id="editList"></div>
+    <button class="addbtn" id="addChore">+ Aufgabe hinzufügen</button>
+    <div class="btnrow"><button class="btn primary" id="editDone">Fertig</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="weekOverlay"><div class="modal" id="weekModal"></div></div>
+<div class="overlay" id="syncOverlay"><div class="modal" id="syncModal"></div></div>
+<div class="overlay" id="trophyOverlay"><div class="modal" id="trophyModal"></div></div>
+
+<script type="module">
+/* ====================================================================
+   FIREBASE-ZUGANGSDATEN
+   ==================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAFS_EjbvlHZHPpV-FqiWdCFcYwU4-AmeU",
+  authDomain: "haushaltsapp-d44f8.firebaseapp.com",
+  projectId: "haushaltsapp-d44f8",
+  storageBucket: "haushaltsapp-d44f8.firebasestorage.app",
+  messagingSenderId: "503869566874",
+  appId: "1:503869566874:web:7d1b258bdd4461df619423",
+  measurementId: "G-EZMB5BXWK2"
+};
+
+/* ---------- Defaults ---------- */
+const DEFAULT_CHORES = [
+  {e:"🍽️", n:"Küche aufräumen", p:15},
+  {e:"🧹", n:"Saugen", p:20},
+  {e:"🚽", n:"Klo putzen", p:25},
+  {e:"🛁", n:"Bad putzen", p:25},
+  {e:"🗑️", n:"Müll rausbringen", p:10},
+  {e:"🧺", n:"Wäsche waschen", p:15},
+  {e:"👕", n:"Wäsche zusammenlegen", p:15},
+  {e:"🍳", n:"Kochen", p:20},
+  {e:"🧽", n:"Geschirr spülen", p:15},
+  {e:"🛒", n:"Einkaufen", p:20},
+  {e:"🌱", n:"Pflanzen gießen", p:5},
+  {e:"🛏️", n:"Bett machen", p:5},
+  {e:"🐶", n:"Hund Gassi", p:15},
+  {e:"🪟", n:"Fenster putzen", p:30},
+];
+const PLAYERS = {
+  koni:   {name:"Koni",   emoji:"🧔", cls:"koni"},
+  claude: {name:"Claude", emoji:"👩", cls:"claude"},
+};
+const LEVELS = [0,50,120,220,350,520,750,1000,1300,1700];
+const LEVEL_NAMES = ["Neuling","Helferlein","Putzhilfe","Ordnungsfan","Haushaltsheld",
+                     "Putz-Profi","Saubermacher","Haushalts-Boss","Legende","Großmeister"];
+
+/* Achievements: test(w=Wochendaten, s=Lifetime-Stats, h=History, wins) */
+const ACHIEVEMENTS = [
+  {id:"first",   e:"🌟", n:"Erster Schritt", d:"Erste Aufgabe erledigt", test:(w,s)=>s.allTimeTotal>=1},
+  {id:"p50",     e:"🔥", n:"Heiß",           d:"50 Pkt in einer Woche",   test:(w)=>w.score>=50},
+  {id:"p100",    e:"💯", n:"Hunderter",      d:"100 Pkt in einer Woche",  test:(w)=>w.score>=100},
+  {id:"p250",    e:"🚀", n:"Raketenstart",   d:"250 Pkt in einer Woche",  test:(w)=>w.score>=250},
+  {id:"streak3", e:"⚡", n:"3er-Combo",      d:"3 Aufgaben in Folge",     test:(w)=>w.bestStreak>=3},
+  {id:"streak5", e:"🌪️", n:"5er-Combo",      d:"5 Aufgaben in Folge",     test:(w)=>w.bestStreak>=5},
+  {id:"variety6",e:"🎖️", n:"Allrounder",     d:"6 versch. Aufgaben/Woche",test:(w)=>Object.keys(w.choreCounts).length>=6},
+  {id:"toilet3", e:"🚽", n:"Klo-Held",       d:"3× Klo putzen/Woche",     test:(w)=>(w.choreCounts["Klo putzen"]||0)>=3},
+  {id:"golden",  e:"✨", n:"Goldjäger",      d:"Goldene Aufgabe erledigt",test:(w)=>w.goldenDone>=1},
+  {id:"chal1",   e:"🎯", n:"Herausforderer", d:"Eine Tages-Challenge",    test:(w,s)=>s.challengesDone>=1},
+  {id:"chal5",   e:"🏹", n:"Challenge-King",  d:"5 Tages-Challenges",      test:(w,s)=>s.challengesDone>=5},
+  {id:"early",   e:"🌅", n:"Frühaufsteher",  d:"Aufgabe vor 8 Uhr",       test:(w,s)=>s.earlyBird},
+  {id:"night",   e:"🌙", n:"Nachtschwärmer", d:"Aufgabe nach 22 Uhr",     test:(w,s)=>s.nightOwl},
+  {id:"life50",  e:"🏅", n:"Fleißig",        d:"50 Aufgaben gesamt",      test:(w,s)=>s.allTimeTotal>=50},
+  {id:"life200", e:"🏆", n:"Putz-Profi",     d:"200 Aufgaben gesamt",     test:(w,s)=>s.allTimeTotal>=200},
+  {id:"life500", e:"👑", n:"Haushalts-Gott", d:"500 Aufgaben gesamt",     test:(w,s)=>s.allTimeTotal>=500},
+  {id:"day3",    e:"📅", n:"Dranbleiber",    d:"3 Tage in Folge aktiv",   test:(w,s)=>s.bestDayStreak>=3},
+  {id:"day7",    e:"🗓️", n:"Wochen-Routine",  d:"7 Tage in Folge aktiv",   test:(w,s)=>s.bestDayStreak>=7},
+  {id:"win1",    e:"🥇", n:"Wochensieger",   d:"Eine Woche gewonnen",     test:(w,s,h,wins)=>wins>=1},
+  {id:"win3",    e:"💪", n:"Seriensieger",   d:"3 Wochen gewonnen",       test:(w,s,h,wins)=>wins>=3},
+  {id:"win10",   e:"🐐", n:"G.O.A.T.",       d:"10 Wochen gewonnen",      test:(w,s,h,wins)=>wins>=10},
+  {id:"lvl5",    e:"⭐", n:"Aufsteiger",     d:"Level 5 erreicht",        test:(w)=>levelOf(w.score)>=5},
+];
+
+/* ---------- Local-only (pro Gerät) ---------- */
+let active = localStorage.getItem("haushalt_active") || "koni";
+function setActive(p){ active=p; localStorage.setItem("haushalt_active",p); }
+function getFamilyCode(){ return localStorage.getItem("haushalt_family") || ""; }
+function setFamilyCode(c){ localStorage.setItem("haushalt_family", c.trim().toLowerCase()); }
+
+/* ---------- Shared state ---------- */
+const LS = "haushalt_v1";
+function isoWeek(d){
+  const dt=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=dt.getUTCDay()||7; dt.setUTCDate(dt.getUTCDate()+4-day);
+  const ys=new Date(Date.UTC(dt.getUTCFullYear(),0,1));
+  const w=Math.ceil((((dt-ys)/86400000)+1)/7);
+  return dt.getUTCFullYear()+"-W"+String(w).padStart(2,"0");
+}
+function freshWeek(){
+  return {
+    koni:{score:0, total:0, streak:0, bestStreak:0, goldenDone:0, choreCounts:{}},
+    claude:{score:0, total:0, streak:0, bestStreak:0, goldenDone:0, choreCounts:{}},
+    log:[], lastBy:null,
+  };
+}
+function freshStats(){ return {allTimeTotal:0, allTimePoints:0, challengesDone:0, dayStreak:0, bestDayStreak:0,
+                              lastDay:null, earlyBird:false, nightOwl:false, achieved:[]}; }
+function ensureShape(s){
+  s.chores = s.chores || DEFAULT_CHORES.slice();
+  s.data = s.data || freshWeek();
+  for(const p of ["koni","claude"]){
+    const d=s.data[p]; if(d){ if(d.bestStreak==null)d.bestStreak=0; if(d.goldenDone==null)d.goldenDone=0; if(!d.choreCounts)d.choreCounts={}; }
+  }
+  s.history = s.history || [];
+  s.stats = s.stats || {};
+  for(const p of ["koni","claude"]){ s.stats[p] = Object.assign(freshStats(), s.stats[p]||{}); if(!Array.isArray(s.stats[p].achieved)) s.stats[p].achieved=[]; }
+  if(typeof s.rev!=="number") s.rev=0;
+  return s;
+}
+function load(){
+  let s; try{ s=JSON.parse(localStorage.getItem(LS)); }catch(e){}
+  if(!s){ s={chores:DEFAULT_CHORES.slice(), week:isoWeek(new Date()), data:freshWeek(),
+            history:[], goldenDay:null, golden:null, challenge:null, challengeDate:null, stats:{}, rev:0}; }
+  return ensureShape(s);
+}
+let state = load();
+
+function save(bump=true){
+  if(bump) state.rev=(state.rev||0)+1;
+  localStorage.setItem(LS, JSON.stringify(state));
+  queueSync();
+}
+
+/* ---------- Firebase ---------- */
+let docRef=null, applyingRemote=false, saveTimer=null, fbSetDoc=null;
+function setDot(cls){ const d=document.getElementById("syncDot"); if(d) d.className="syncdot "+cls; }
+async function initSync(){
+  if(!FIREBASE_CONFIG.apiKey){ setDot("off"); return; }
+  const code=getFamilyCode();
+  if(!code){ setDot("off"); openSync(true); return; }
+  try{
+    const {initializeApp}=await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const {getFirestore, doc, onSnapshot, setDoc}=await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    const app=initializeApp(FIREBASE_CONFIG);
+    const db=getFirestore(app); fbSetDoc=setDoc;
+    docRef=doc(db, "families", code);
+    onSnapshot(docRef, (snap)=>{
+      if(snap.metadata.hasPendingWrites) return;
+      if(!snap.exists()){ pushNow(); return; }
+      const r=snap.data();
+      if((r.rev||0) < (state.rev||0)){ pushNow(); return; }
+      applyingRemote=true;
+      state.chores=r.chores||state.chores;
+      state.week=r.week||state.week;
+      state.data=r.data||state.data;
+      state.history=r.history||state.history;
+      state.golden=(r.golden===undefined?state.golden:r.golden);
+      state.goldenDay=r.goldenDay||state.goldenDay;
+      state.challenge=(r.challenge===undefined?state.challenge:r.challenge);
+      state.challengeDate=r.challengeDate||state.challengeDate;
+      state.stats=r.stats||state.stats;
+      state.rev=r.rev||state.rev;
+      ensureShape(state);
+      localStorage.setItem(LS, JSON.stringify(state));
+      applyingRemote=false;
+      checkWeek(); ensureDaily(); render();
+    }, (err)=>{ console.error(err); setDot("err"); });
+    setDot("on");
+  }catch(e){ console.error(e); setDot("err"); }
+}
+function snapshotForCloud(){
+  return {chores:state.chores, week:state.week, data:state.data, history:state.history,
+          golden:state.golden??null, goldenDay:state.goldenDay??null,
+          challenge:state.challenge??null, challengeDate:state.challengeDate??null,
+          stats:state.stats, rev:state.rev||0, updatedAt:Date.now()};
+}
+async function pushNow(){
+  if(!docRef||!fbSetDoc||applyingRemote) return;
+  try{ await fbSetDoc(docRef, snapshotForCloud()); setDot("on"); }
+  catch(e){ console.error(e); setDot("err"); }
+}
+function queueSync(){ if(!docRef||applyingRemote) return; clearTimeout(saveTimer); saveTimer=setTimeout(pushNow,250); }
+
+/* ---------- Weekly rollover ---------- */
+function checkWeek(){
+  const now=isoWeek(new Date());
+  if(state.week!==now){
+    const d=state.data;
+    const winner = d.koni.score===d.claude.score ? "tie" : (d.koni.score>d.claude.score?"koni":"claude");
+    state.history.unshift({week:state.week, koni:d.koni.score, claude:d.claude.score, winner});
+    state.history=state.history.slice(0,30);
+    state.week=now; state.data=freshWeek();
+    // Sieg-Trophäen sofort prüfen
+    ["koni","claude"].forEach(p=>checkAchievements(p));
+    save();
+    showWeekResult(state.history[0], true);
+  }
+}
+
+/* ---------- Daily ---------- */
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function yesterdayStr(){ const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); }
+function ensureDaily(){
+  const t=todayStr(); let changed=false;
+  if(state.goldenDay!==t){ state.goldenDay=t; state.golden=state.chores.length?Math.floor(Math.random()*state.chores.length):null; changed=true; }
+  if(state.challengeDate!==t){
+    state.challengeDate=t;
+    const pool=[
+      {txt:"Mach heute 3 verschiedene Aufgaben", bonus:20, type:"variety", goal:3},
+      {txt:"Sammle heute 40 Punkte", bonus:15, type:"points", goal:40},
+      {txt:"Erledige die Goldene Aufgabe", bonus:25, type:"golden", goal:1},
+      {txt:"Mach 2 Aufgaben hintereinander", bonus:15, type:"streak", goal:2},
+    ];
+    state.challenge=pool[Math.floor(Math.random()*pool.length)];
+    state.challenge.doneBy=null;
+    state.challenge.todayCounts={koni:0, claude:0, koniVar:[], claudeVar:[]};
+    changed=true;
+  }
+  if(changed) save();
+}
+
+/* ---------- Helpers ---------- */
+function levelOf(score){ let l=0; for(let i=0;i<LEVELS.length;i++) if(score>=LEVELS[i]) l=i; return l; }
+function nextLevelPts(score){ const l=levelOf(score); return LEVELS[Math.min(l+1,LEVELS.length-1)]; }
+function winsOf(p){ return state.history.filter(h=>h.winner===p).length; }
+
+function checkAchievements(p){
+  const w=state.data[p], s=state.stats[p], wins=winsOf(p);
+  s.achieved=s.achieved||[];
+  const newly=[];
+  for(const a of ACHIEVEMENTS){
+    if(s.achieved.includes(a.id)) continue;
+    let ok=false; try{ ok=a.test(w,s,state.history,wins);}catch(e){}
+    if(ok){ s.achieved.push(a.id); newly.push(a); }
+  }
+  return newly;
+}
+
+/* ---------- Scoring ---------- */
+function doChore(idx, ev, btn){
+  const c=state.chores[idx]; if(!c) return;
+  const p=active, d=state.data[p], s=state.stats[p];
+  const isGolden = idx===state.golden;
+  const pts = c.p*(isGolden?2:1);
+  const prevLevel = levelOf(d.score);
+
+  d.score+=pts; d.total+=1;
+  d.choreCounts[c.n]=(d.choreCounts[c.n]||0)+1;
+  d.streak=(state.data.lastBy===p)? d.streak+1 : 1;
+  d.bestStreak=Math.max(d.bestStreak||0, d.streak);
+  if(isGolden) d.goldenDone=(d.goldenDone||0)+1;
+  state.data.lastBy=p;
+
+  // lifetime stats
+  s.allTimeTotal++; s.allTimePoints+=pts;
+  const hr=new Date().getHours();
+  if(hr<8) s.earlyBird=true; if(hr>=22) s.nightOwl=true;
+  const t=todayStr();
+  if(s.lastDay!==t){ s.dayStreak=(s.lastDay===yesterdayStr())? s.dayStreak+1 : 1; s.lastDay=t; s.bestDayStreak=Math.max(s.bestDayStreak||0,s.dayStreak); }
+
+  // challenge
+  const ch=state.challenge;
+  if(ch && !ch.doneBy){
+    const tc=ch.todayCounts||(ch.todayCounts={koni:0,claude:0,koniVar:[],claudeVar:[]});
+    tc[p]=(tc[p]||0)+1; const vk=p+"Var"; tc[vk]=tc[vk]||[]; if(!tc[vk].includes(c.n)) tc[vk].push(c.n);
+    let done=false;
+    if(ch.type==="variety") done=tc[vk].length>=ch.goal;
+    else if(ch.type==="points") done=d.score>=ch.goal;
+    else if(ch.type==="golden") done=isGolden;
+    else if(ch.type==="streak") done=d.streak>=ch.goal;
+    if(done){ ch.doneBy=p; d.score+=ch.bonus; s.challengesDone++;
+      flash(ev,"+"+ch.bonus+" 🎯", p==="koni"?"var(--koni)":"var(--claude)");
+      celebrate("🎯","Challenge geschafft!", ch.txt+" · +"+ch.bonus+" Bonus", true); }
+  }
+
+  // log entry
+  const entry={p, n:c.n, e:c.e, pts, t:Date.now(), golden:isGolden};
+  state.data.log.unshift(entry); state.data.log=state.data.log.slice(0,60);
+
+  // level up?
+  const newLevel=levelOf(d.score);
+  // achievements
+  const newly=checkAchievements(p);
+
+  save();
+
+  // FX
+  if(btn){ ripple(btn,ev); btn.classList.remove("pop"); void btn.offsetWidth; btn.classList.add("pop"); }
+  flash(ev, "+"+pts+(isGolden?" ✨":""), p==="koni"?"var(--koni)":"var(--claude)");
+  if(isGolden) confettiBurst(ev?ev.clientX:innerWidth/2, ev?ev.clientY:innerHeight/2, 26);
+  if(navigator.vibrate) navigator.vibrate(isGolden?[20,40,20]:15);
+  render(); bumpScore(p);
+  showUndo(entry);
+
+  if(newLevel>prevLevel){
+    celebrate(PLAYERS[p].emoji+"⬆️", "Level "+newLevel+"!", PLAYERS[p].name+" ist jetzt "+(LEVEL_NAMES[newLevel]||"Level "+newLevel), true);
+  }
+  newly.forEach(a=>celebrate(a.e, "Abzeichen freigeschaltet!", PLAYERS[p].name+": "+a.n+" – "+a.d, true));
+}
+
+function undo(ts){
+  const i=state.data.log.findIndex(x=>x.t===ts); if(i<0) return false;
+  const e=state.data.log[i], d=state.data[e.p], s=state.stats[e.p];
+  d.score=Math.max(0,d.score-e.pts); d.total=Math.max(0,d.total-1);
+  if(d.choreCounts[e.n]) d.choreCounts[e.n]--;
+  if(e.golden) d.goldenDone=Math.max(0,(d.goldenDone||0)-1);
+  if(s){ s.allTimeTotal=Math.max(0,s.allTimeTotal-1); s.allTimePoints=Math.max(0,s.allTimePoints-e.pts); }
+  state.data.log.splice(i,1);
+  save(); render();
+  return true;
+}
+
+/* ---------- FX ---------- */
+function flash(ev, txt, color){
+  const x=ev?ev.clientX:innerWidth/2, y=ev?ev.clientY:innerHeight/2;
+  const el=document.createElement("div"); el.className="float"; el.textContent=txt; el.style.color=color;
+  el.style.left=(x-20)+"px"; el.style.top=(y-20)+"px"; document.body.appendChild(el); setTimeout(()=>el.remove(),1000);
+}
+function ripple(btn, ev){
+  const r=btn.getBoundingClientRect();
+  const sp=document.createElement("span"); sp.className="ripple";
+  sp.style.left=((ev?ev.clientX:r.left+r.width/2)-r.left)+"px";
+  sp.style.top=((ev?ev.clientY:r.top+r.height/2)-r.top)+"px";
+  btn.appendChild(sp); sp.style.animation="rippleAnim .5s ease-out"; setTimeout(()=>sp.remove(),520);
+}
+function confettiBurst(x,y,n){
+  const cols=["#fbbf24","#34d399","#38bdf8","#f472b6","#a78bfa","#fb7185"];
+  for(let i=0;i<n;i++){
+    const el=document.createElement("div"); el.className="confetti";
+    const sz=6+Math.random()*8; el.style.width=sz+"px"; el.style.height=(sz*1.4)+"px";
+    el.style.left=x+"px"; el.style.top=y+"px"; el.style.background=cols[i%cols.length];
+    document.body.appendChild(el);
+    const ang=Math.random()*Math.PI*2, dist=60+Math.random()*120;
+    const dx=Math.cos(ang)*dist, dy=Math.sin(ang)*dist - 60;
+    el.animate([
+      {transform:`translate(0,0) rotate(0deg)`, opacity:1},
+      {transform:`translate(${dx}px,${dy}px) rotate(${Math.random()*720-360}deg)`, opacity:1, offset:.5},
+      {transform:`translate(${dx*1.2}px,${dy+260}px) rotate(${Math.random()*720}deg)`, opacity:0}
+    ],{duration:1100+Math.random()*500, easing:"cubic-bezier(.2,.6,.4,1)"}).onfinish=()=>el.remove();
+  }
+}
+function bumpScore(p){
+  const el=document.querySelector(".player."+p+" .pscore"); if(!el) return;
+  el.classList.add("bump"); setTimeout(()=>el.classList.remove("bump"),160);
+}
+
+/* celebration queue */
+let celebQ=[], celebBusy=false;
+function celebrate(emoji,title,sub,burst){ celebQ.push({emoji,title,sub,burst}); if(!celebBusy) nextCeleb(); }
+function nextCeleb(){
+  if(!celebQ.length){ celebBusy=false; return; }
+  celebBusy=true; const c=celebQ.shift();
+  const wrap=document.createElement("div"); wrap.className="celebrate";
+  wrap.innerHTML=`<div class="card"><div class="ce">${c.emoji}</div><div class="ct">${c.title}</div><div class="cs">${c.sub||""}</div></div>`;
+  const card=wrap.querySelector(".card"); card.style.animation="celebIn .4s ease both";
+  document.body.appendChild(wrap);
+  if(c.burst) confettiBurst(innerWidth/2, innerHeight*0.4, 40);
+  if(navigator.vibrate) navigator.vibrate([20,30,20,30,40]);
+  setTimeout(()=>{ card.style.animation="celebOut .35s ease forwards"; setTimeout(()=>{ wrap.remove(); nextCeleb(); },340); }, 1500);
+}
+
+/* Snackbar */
+let snackTimer=null;
+function showUndo(entry){
+  const sb=document.getElementById("snackbar");
+  sb.innerHTML=`<span>${entry.e} <b>${entry.n}</b> · ${PLAYERS[entry.p].name} +${entry.pts}</span><button>↺ Rückgängig</button>`;
+  sb.querySelector("button").onclick=()=>{ if(undo(entry.t)){ if(navigator.vibrate)navigator.vibrate(10); } hideSnack(); };
+  sb.classList.add("show");
+  clearTimeout(snackTimer); snackTimer=setTimeout(hideSnack,5000);
+}
+function hideSnack(){ document.getElementById("snackbar").classList.remove("show"); }
+
+/* ---------- Render ---------- */
+function medalsFor(p){ return state.stats[p].achieved.map(id=>{ const a=ACHIEVEMENTS.find(x=>x.id===id); return a?a.e:""; }).filter(Boolean); }
+function renderBoard(){
+  const board=document.getElementById("board");
+  const ks=state.data.koni.score, cs=state.data.claude.score;
+  const max=Math.max(ks,cs,nextLevelPts(Math.max(ks,cs)),1);
+  board.innerHTML="";
+  for(const key of ["koni","claude"]){
+    const P=PLAYERS[key], d=state.data[key], lvl=levelOf(d.score), next=nextLevelPts(d.score);
+    const pct=Math.min(100,(d.score/max)*100), leading=(key==="koni"?ks>cs:cs>ks)&&d.score>0;
+    const meds=medalsFor(key); const shown=meds.slice(0,7).join(" "); const extra=meds.length>7?` <span class="more">+${meds.length-7}</span>`:"";
+    const div=document.createElement("div"); div.className="player "+P.cls+(active===key?" active":"");
+    div.innerHTML=`
+      <div class="glow"></div>
+      ${leading?'<div class="crown">👑</div>':''}
+      <div class="top">
+        <div class="avatar">${P.emoji}</div>
+        <div><div class="pname">${P.name}</div>
+          <div class="plevel">Lvl ${lvl} · ${LEVEL_NAMES[lvl]||""} · ${d.total} Aufg.</div></div>
+      </div>
+      <div class="pscore">${d.score}<small> Pkt</small></div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="streak">🔥 Serie: ${state.data.lastBy===key?d.streak:0} · bis Lvl ${lvl+1}: ${Math.max(0,next-d.score)} Pkt</div>
+      <div class="medals">${shown||'<span class="more">noch keine Abzeichen</span>'}${extra}</div>`;
+    div.onclick=()=>{ setActive(key); render(); };
+    board.appendChild(div);
+  }
+}
+function renderToggle(){ document.querySelectorAll("#toggle button").forEach(b=>b.classList.toggle("on", b.dataset.p===active)); }
+function renderChallenge(){
+  const w=document.getElementById("challengeWrap"), ch=state.challenge; if(!ch){w.innerHTML="";return;}
+  w.innerHTML=`<div class="section-title">Tages-Challenge</div>
+    <div class="chip" style="font-size:15px; padding:12px 14px; display:flex; width:100%;">
+      🎯 ${ch.txt} <b style="color:var(--gold); margin-left:auto;">+${ch.bonus}</b>
+      ${ch.doneBy?`<span style="color:var(--green); margin-left:8px;">✓ ${PLAYERS[ch.doneBy].name}</span>`:""}
+    </div>`;
+}
+function renderGrid(){
+  const grid=document.getElementById("grid"); grid.innerHTML="";
+  state.chores.forEach((c,i)=>{
+    const golden=i===state.golden;
+    const b=document.createElement("button"); b.className="chore"+(golden?" golden":"");
+    b.innerHTML=`${golden?'<span class="badge">2× ✨</span>':''}
+      <span class="emoji">${c.e}</span><span class="cname">${c.n}</span>
+      <span class="pts">+${golden?c.p*2:c.p} Pkt</span>`;
+    b.onclick=(ev)=>doChore(i,ev,b);
+    grid.appendChild(b);
+  });
+}
+function fmtTime(t){
+  const d=new Date(t), now=new Date(), same=d.toDateString()===now.toDateString();
+  return same? d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})
+             : d.toLocaleDateString("de-DE",{weekday:"short",hour:"2-digit",minute:"2-digit"});
+}
+function renderLog(){
+  const log=document.getElementById("log");
+  if(!state.data.log.length){ log.innerHTML='<div class="empty">Noch keine Aufgaben erledigt. Leg los! 💪</div>'; return; }
+  log.innerHTML="";
+  state.data.log.forEach(e=>{
+    const color=e.p==="koni"?"var(--koni)":"var(--claude)";
+    const row=document.createElement("div"); row.className="row";
+    row.innerHTML=`<span class="who" style="background:${color}"></span>
+      <span>${e.e} ${e.n} ${e.golden?"✨":""}</span>
+      <span style="color:var(--gold); font-weight:700;">+${e.pts}</span>
+      <span class="t">${fmtTime(e.t)}</span><button class="undo" title="Rückgängig">↺</button>`;
+    row.querySelector(".undo").onclick=()=>undo(e.t);
+    log.appendChild(row);
+  });
+}
+function render(){
+  document.getElementById("weekLabel").textContent="Aktuelle Woche · "+state.week.replace("-W"," KW ")+" · Reset Mo 00:00";
+  renderBoard(); renderToggle(); renderChallenge(); renderGrid(); renderLog();
+}
+
+/* ---------- Edit ---------- */
+function renderEdit(){
+  const list=document.getElementById("editList"); list.innerHTML="";
+  state.chores.forEach((c,i)=>{
+    const r=document.createElement("div"); r.className="editrow";
+    r.innerHTML=`<input class="em" value="${c.e}" maxlength="2">
+      <input class="nm" value="${c.n.replace(/"/g,'&quot;')}">
+      <input class="pt" type="number" value="${c.p}" min="1"><button class="del">🗑️</button>`;
+    const [em,nm,pt]=r.querySelectorAll("input");
+    em.oninput=()=>{c.e=em.value||"✅"; save(); renderGrid();};
+    nm.oninput=()=>{c.n=nm.value||"Aufgabe"; save(); renderGrid();};
+    pt.oninput=()=>{c.p=Math.max(1,parseInt(pt.value)||1); save(); renderGrid();};
+    r.querySelector(".del").onclick=()=>{ state.chores.splice(i,1); save(); renderEdit(); render(); };
+    list.appendChild(r);
+  });
+}
+document.getElementById("addChore").onclick=()=>{ state.chores.push({e:"✅",n:"Neue Aufgabe",p:10}); save(); renderEdit(); render(); };
+document.getElementById("editBtn").onclick=()=>{ renderEdit(); document.getElementById("editOverlay").classList.add("show"); };
+document.getElementById("editDone").onclick=()=>{ document.getElementById("editOverlay").classList.remove("show"); ensureDaily(); render(); };
+
+/* ---------- Trophy room ---------- */
+let trophyTab="koni";
+function renderTrophy(){
+  const m=document.getElementById("trophyModal"), p=trophyTab, s=state.stats[p], w=state.data[p];
+  const unlocked=s.achieved.length, totalA=ACHIEVEMENTS.length;
+  const grid=ACHIEVEMENTS.map(a=>{
+    const got=s.achieved.includes(a.id);
+    return `<div class="trophy ${got?"":"locked"}"><div class="te">${a.e}</div><div class="tn">${a.n}</div><div class="td">${a.d}</div></div>`;
+  }).join("");
+  m.innerHTML=`<h2>🏅 Trophäen</h2>
+    <div class="tabs">
+      <button class="koni ${p==="koni"?"sel":""}" data-t="koni">🧔 Koni</button>
+      <button class="claude ${p==="claude"?"sel":""}" data-t="claude">👩 Claude</button>
+    </div>
+    <div class="tstat">
+      <div class="box"><b>${unlocked}/${totalA}</b><span>Abzeichen</span></div>
+      <div class="box"><b>${s.allTimeTotal}</b><span>Aufgaben gesamt</span></div>
+      <div class="box"><b>${winsOf(p)}</b><span>Wochensiege</span></div>
+      <div class="box"><b>${s.bestDayStreak}🔥</b><span>Beste Tagesserie</span></div>
+    </div>
+    <div class="trophy-grid">${grid}</div>
+    <div class="btnrow"><button class="btn" id="trClose">Schließen</button></div>`;
+  m.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{ trophyTab=b.dataset.t; renderTrophy(); });
+  m.querySelector("#trClose").onclick=()=>document.getElementById("trophyOverlay").classList.remove("show");
+}
+document.getElementById("trophyBtn").onclick=()=>{ trophyTab=active; renderTrophy(); document.getElementById("trophyOverlay").classList.add("show"); };
+
+/* ---------- Week modal ---------- */
+function showWeekResult(h, auto){
+  const m=document.getElementById("weekModal");
+  let winHtml; if(h.winner==="tie") winHtml=`<div class="winner">🤝 Unentschieden!</div>`;
+  else{ const P=PLAYERS[h.winner]; winHtml=`<div class="big">${P.emoji}🏆</div><div class="winner">${P.name} gewinnt!</div>`; }
+  m.innerHTML=`${auto?'<p style="text-align:center">Neue Woche gestartet 🎉</p>':''}${winHtml}
+    <div class="sub">${h.week.replace("-W"," KW ")}<br>Koni ${h.koni} · Claude ${h.claude}</div>
+    <div class="sub">🎁 Gewinner sucht sich den Wochenpreis aus!</div>
+    <div class="btnrow"><button class="btn primary" id="wOk">Weiter</button></div>`;
+  document.getElementById("weekOverlay").classList.add("show");
+  document.getElementById("wOk").onclick=()=>document.getElementById("weekOverlay").classList.remove("show");
+  if(h.winner!=="tie") confettiBurst(innerWidth/2, innerHeight*0.35, 60);
+}
+document.getElementById("weekBtn").onclick=()=>{
+  const m=document.getElementById("weekModal"), d=state.data;
+  const lead=d.koni.score===d.claude.score?"Gleichstand":(d.koni.score>d.claude.score?"Koni führt":"Claude führt");
+  const hist=state.history.map(h=>{ const w=h.winner==="tie"?"🤝":PLAYERS[h.winner].emoji;
+    return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:14px;">
+      <span>${h.week.replace("-W"," KW ")}</span><span>K ${h.koni} · C ${h.claude} ${w}</span></div>`;
+  }).join("")||'<div class="empty">Noch keine abgeschlossenen Wochen.</div>';
+  m.innerHTML=`<h2>🎁 Wochenstand</h2><p>${lead} · Wochensieger sucht sich den Preis aus!</p>
+    <div style="display:flex;gap:10px;margin-bottom:16px;">
+      <div class="chip" style="flex:1;justify-content:center;color:var(--koni);font-size:17px;">🧔 ${d.koni.score}</div>
+      <div class="chip" style="flex:1;justify-content:center;color:var(--claude);font-size:17px;">👩 ${d.claude.score}</div>
+    </div>
+    <div class="section-title" style="margin:4px;">Vergangene Wochen</div>${hist}
+    <div class="btnrow"><button class="btn" id="wClose">Schließen</button><button class="btn danger" id="wReset">Woche jetzt beenden</button></div>`;
+  document.getElementById("weekOverlay").classList.add("show");
+  document.getElementById("wClose").onclick=()=>document.getElementById("weekOverlay").classList.remove("show");
+  document.getElementById("wReset").onclick=()=>{
+    if(!confirm("Aktuelle Woche beenden und Sieger küren? Punkte werden zurückgesetzt.")) return;
+    const dd=state.data, winner=dd.koni.score===dd.claude.score?"tie":(dd.koni.score>dd.claude.score?"koni":"claude");
+    state.history.unshift({week:state.week, koni:dd.koni.score, claude:dd.claude.score, winner});
+    state.history=state.history.slice(0,30);
+    state.data=freshWeek(); ["koni","claude"].forEach(p=>checkAchievements(p)); save();
+    showWeekResult(state.history[0], false);
+  };
+};
+
+/* ---------- Sync modal ---------- */
+function openSync(){
+  const m=document.getElementById("syncModal"), configured=!!FIREBASE_CONFIG.apiKey, code=getFamilyCode();
+  let status=!configured?'⚪ Lokal (keine Firebase-Zugangsdaten)':(docRef?'🟢 Verbunden':(code?'🟠 Verbinde…':'⚪ Noch kein Familien-Code'));
+  m.innerHTML=`<h2>☁️ Synchronisation</h2><p>${status}</p>
+    ${configured?`<label style="font-size:13px;color:var(--muted);">Familien-Code (auf allen Geräten gleich):</label>
+      <input class="field" id="famInput" placeholder="z.B. whittaker" value="${code.replace(/"/g,'')}">
+      <div class="btnrow"><button class="btn primary" id="famSave">Speichern &amp; verbinden</button></div>`
+    :`<p>Trag oben im Code (FIREBASE_CONFIG) deine Firebase-Daten ein.</p>`}
+    <div class="btnrow"><button class="btn" id="syncClose">Schließen</button></div>`;
+  document.getElementById("syncOverlay").classList.add("show");
+  document.getElementById("syncClose").onclick=()=>document.getElementById("syncOverlay").classList.remove("show");
+  const fs=document.getElementById("famSave");
+  if(fs) fs.onclick=()=>{ const v=document.getElementById("famInput").value.trim(); if(!v){alert("Bitte Code eingeben.");return;}
+    setFamilyCode(v); location.reload(); };
+}
+document.getElementById("syncBtn").onclick=()=>openSync();
+
+document.querySelectorAll(".overlay").forEach(o=>o.onclick=(e)=>{ if(e.target===o) o.classList.remove("show"); });
+document.querySelectorAll("#toggle button").forEach(b=>b.onclick=()=>{ setActive(b.dataset.p); render(); });
+
+/* ---------- Boot ---------- */
+checkWeek(); ensureDaily(); render(); initSync();
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ checkWeek(); ensureDaily(); render(); }});
+</script>
+</body>
+</html>
