@@ -248,19 +248,23 @@ const ADULT_CHORES = [
   {e:"🐶", n:"Hund Gassi", p:15},
   {e:"🪟", n:"Fenster putzen", p:30},
 ];
-/* Aufgaben für Kinder (einfacher, kleinere Punkte) */
+/* Aufgaben für Kleinkind (Jakob, 3 Jahre) – ganz einfach, kleine Punkte, oft "mit Hilfe" */
 const KID_CHORES = [
-  {e:"🧸", n:"Spielzeug aufräumen", p:10},
-  {e:"🛏️", n:"Eigenes Bett machen", p:10},
-  {e:"🦷", n:"Zähne putzen (ohne Meckern)", p:5},
-  {e:"🎒", n:"Schultasche packen", p:5},
-  {e:"🍽️", n:"Tisch decken", p:10},
+  {e:"🧸", n:"Spielzeug wegräumen", p:5},
+  {e:"📚", n:"Bücher ins Regal räumen", p:5},
   {e:"🧺", n:"Schmutzwäsche in den Korb", p:5},
-  {e:"📚", n:"Hausaufgaben gemacht", p:15},
-  {e:"🐟", n:"Haustier füttern", p:10},
-  {e:"🧹", n:"Beim Tisch abräumen helfen", p:10},
-  {e:"👟", n:"Schuhe & Jacke wegräumen", p:5},
+  {e:"👟", n:"Schuhe wegstellen", p:5},
+  {e:"🦷", n:"Zähne putzen (mit Hilfe)", p:5},
+  {e:"🥄", n:"Löffel/Servietten auf den Tisch legen", p:5},
+  {e:"🪴", n:"Blumen gießen (mit Hilfe)", p:5},
+  {e:"🐻", n:"Kuscheltiere aufs Bett legen", p:5},
+  {e:"🐾", n:"Haustier füttern (mit Hilfe)", p:5},
+  {e:"🧹", n:"Unter dem Bett sauber machen", p:10},
 ];
+/* Namen der ALTEN (schulkind-)Aufgaben – werden per Migration ersetzt */
+const OLD_KID_CHORE_NAMES = ["Spielzeug aufräumen","Eigenes Bett machen","Zähne putzen (ohne Meckern)",
+  "Schultasche packen","Tisch decken","Schmutzwäsche in den Korb","Hausaufgaben gemacht",
+  "Haustier füttern","Beim Tisch abräumen helfen","Schuhe & Jacke wegräumen"];
 const DEFAULT_CHORES = ADULT_CHORES.concat(KID_CHORES);
 
 const PLAYERS = {
@@ -339,6 +343,34 @@ const REWARDS = [
 ];
 function pickReward(){ return REWARDS[Math.floor(Math.random()*REWARDS.length)]; }
 
+/* Errät ein passendes Icon zu einem Aufgaben-Namen (für manuell hinzugefügte Aufgaben).
+   Gibt "" zurück, wenn nichts passt. */
+function guessIcon(name){
+  const n=(name||"").toLowerCase();
+  const map=[
+    ["unter dem bett","🧹"],["staubsaug","🧹"],["saug","🧹"],["staub wisch","🧹"],["staub","🧹"],["fegen","🧹"],["kehren","🧹"],
+    ["klo","🚽"],["toilette","🚽"],["wc","🚽"],
+    ["dusch","🚿"],["badewanne","🛁"],["wanne","🛁"],["bad","🛁"],
+    ["geschirr","🧽"],["spül","🧽"],["abwisch","🧽"],["wisch","🧽"],["boden","🧽"],["putzen","🧽"],
+    ["tisch deck","🍽️"],["küche","🍽️"],["tisch","🍽️"],
+    ["koch","🍳"],["back","🧁"],["essen","🍽️"],
+    ["müll","🗑️"],["abfall","🗑️"],["papierkorb","🗑️"],["mülleimer","🗑️"],
+    ["wäsche","🧺"],["bügel","👔"],["waschen","🧼"],["hände","🧼"],
+    ["kissen","🛏️"],["kuscheltier","🐻"],["bett","🛏️"],
+    ["fenster","🪟"],["spiegel","🪞"],
+    ["einkauf","🛒"],["shopping","🛒"],
+    ["blume","🪴"],["pflanze","🪴"],["gießen","🪴"],["garten","🌳"],["rasen","🌱"],["mähen","🌱"],["laub","🍂"],["schnee","❄️"],
+    ["gassi","🐶"],["hund","🐶"],["katze","🐱"],["fisch","🐟"],["haustier","🐾"],["füttern","🐾"],
+    ["spielzeug","🧸"],["aufräum","🧸"],["ordnung","🧹"],
+    ["zähne","🦷"],["anziehen","👕"],["schuhe","👟"],["jacke","🧥"],["garderobe","🧥"],
+    ["auto","🚗"],["fahrrad","🚲"],
+    ["bücher","📚"],["buch","📚"],["regal","📚"],["vorlesen","📖"],["lernen","📖"],["hausaufgabe","📚"],["schultasche","🎒"],
+    ["post","📬"],["löffel","🥄"],["serviette","🥄"],
+  ];
+  for(const m of map) if(n.includes(m[0])) return m[1];
+  return "";
+}
+
 /* Achievements: test(w=Wochendaten, s=Lifetime-Stats, h=History, wins) */
 const ACHIEVEMENTS = [
   {id:"first",   e:"🌟", n:"Erster Schritt", d:"Erste Aufgabe erledigt", test:(w,s)=>s.allTimeTotal>=1},
@@ -405,6 +437,17 @@ function runMigrations(){
   if(!state.migrations.kidChores){
     KID_CHORES.forEach(kc=>{ if(!state.chores.some(c=>c.n===kc.n)) state.chores.push(kc); });
     state.migrations.kidChores=true; changed=true;
+  }
+  // V2: alte Schulkind-Aufgaben raus, neue Kleinkind-Aufgaben rein (Jakob, 3)
+  if(!state.migrations.kidChoresV2){
+    state.chores=state.chores.filter(c=>!OLD_KID_CHORE_NAMES.includes(c.n));
+    KID_CHORES.forEach(kc=>{ if(!state.chores.some(c=>c.n===kc.n)) state.chores.push(kc); });
+    state.migrations.kidChoresV2=true; changed=true;
+  }
+  // Manuell hinzugefügte Aufgaben mit Platzhalter ✅ bekommen ein passendes Icon
+  if(!state.migrations.autoIcons){
+    state.chores.forEach(c=>{ if(!c.e || c.e==="✅") c.e=guessIcon(c.n)||"🧹"; });
+    state.migrations.autoIcons=true; changed=true;
   }
   if(changed) save();
 }
@@ -753,7 +796,7 @@ function renderEdit(){
       <input class="pt" type="number" value="${c.p}" min="1"><button class="del">🗑️</button>`;
     const [em,nm,pt]=r.querySelectorAll("input");
     em.oninput=()=>{c.e=em.value||"✅"; save(); renderGrid();};
-    nm.oninput=()=>{c.n=nm.value||"Aufgabe"; save(); renderGrid();};
+    nm.oninput=()=>{ c.n=nm.value||"Aufgabe"; if(c.e==="✅"){ const g=guessIcon(c.n); if(g){ c.e=g; em.value=g; } } save(); renderGrid(); };
     pt.oninput=()=>{c.p=Math.max(1,parseInt(pt.value)||1); save(); renderGrid();};
     r.querySelector(".del").onclick=()=>{ state.chores.splice(i,1); save(); renderEdit(); render(); };
     list.appendChild(r);
