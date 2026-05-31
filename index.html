@@ -56,6 +56,8 @@
   .bar{height:8px; background:rgba(255,255,255,.08); border-radius:6px; margin-top:12px; overflow:hidden; position:relative;}
   .bar > i{display:block; height:100%; background:currentColor; border-radius:6px; transition:width .4s ease;}
   .streak{font-size:12px; color:var(--muted); margin-top:8px; position:relative;}
+  .rankrow{font-size:12px; color:var(--muted); margin-top:8px; position:relative;}
+  .bar.mini{height:5px; margin-top:5px; opacity:.8;}
   .crown{position:absolute; top:12px; right:14px; font-size:24px; animation:bobble 2s ease-in-out infinite;}
   @keyframes bobble{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-4px) rotate(6deg)}}
   .medals{font-size:18px; margin-top:8px; position:relative; line-height:1.5; letter-spacing:1px;}
@@ -241,9 +243,22 @@ const PLAYERS = {
   koni:   {name:"Koni",   emoji:"🧔", cls:"koni"},
   claude: {name:"Claude", emoji:"👩", cls:"claude"},
 };
-const LEVELS = [0,50,120,220,350,520,750,1000,1300,1700];
-const LEVEL_NAMES = ["Neuling","Helferlein","Putzhilfe","Ordnungsfan","Haushaltsheld",
-                     "Putz-Profi","Saubermacher","Haushalts-Boss","Legende","Großmeister"];
+/* Lebenslange Ränge – basieren auf insgesamt gesammelten Punkten (allTimePoints).
+   Die Abstände werden bewusst immer größer (immer schwerer aufzusteigen). */
+const RANKS = [
+  {min:0,     e:"🐣", name:"Frischling"},
+  {min:50,    e:"🧹", name:"Helferlein"},
+  {min:150,   e:"🧽", name:"Putzhilfe"},
+  {min:350,   e:"✨", name:"Guter Saubermacher"},
+  {min:700,   e:"🌟", name:"Ordnungstalent"},
+  {min:1300,  e:"🦸", name:"Haushaltsheld"},
+  {min:2300,  e:"🏅", name:"Putz-Profi"},
+  {min:4000,  e:"🥇", name:"Saubermeister"},
+  {min:6500,  e:"👑", name:"Haushalts-Boss"},
+  {min:10000, e:"🐐", name:"Putz-Legende"},
+  {min:15000, e:"🏆", name:"Großmeister der Sauberkeit"},
+  {min:22000, e:"⚡", name:"Haushalts-Gott"},
+];
 
 /* Achievements: test(w=Wochendaten, s=Lifetime-Stats, h=History, wins) */
 const ACHIEVEMENTS = [
@@ -268,7 +283,8 @@ const ACHIEVEMENTS = [
   {id:"win1",    e:"🥇", n:"Wochensieger",   d:"Eine Woche gewonnen",     test:(w,s,h,wins)=>wins>=1},
   {id:"win3",    e:"💪", n:"Seriensieger",   d:"3 Wochen gewonnen",       test:(w,s,h,wins)=>wins>=3},
   {id:"win10",   e:"🐐", n:"G.O.A.T.",       d:"10 Wochen gewonnen",      test:(w,s,h,wins)=>wins>=10},
-  {id:"lvl5",    e:"⭐", n:"Aufsteiger",     d:"Level 5 erreicht",        test:(w)=>levelOf(w.score)>=5},
+  {id:"rank4",   e:"⭐", n:"Aufsteiger",     d:"Rang 'Ordnungstalent'",   test:(w,s)=>rankIndex(s.allTimePoints)>=4},
+  {id:"rank8",   e:"💎", n:"Elite",          d:"Rang 'Haushalts-Boss'",   test:(w,s)=>rankIndex(s.allTimePoints)>=8},
 ];
 
 /* ---------- Local-only (pro Gerät) ---------- */
@@ -410,8 +426,9 @@ function ensureDaily(){
 }
 
 /* ---------- Helpers ---------- */
-function levelOf(score){ let l=0; for(let i=0;i<LEVELS.length;i++) if(score>=LEVELS[i]) l=i; return l; }
-function nextLevelPts(score){ const l=levelOf(score); return LEVELS[Math.min(l+1,LEVELS.length-1)]; }
+function rankIndex(pts){ let i=0; for(let k=0;k<RANKS.length;k++) if((pts||0)>=RANKS[k].min) i=k; return i; }
+function rankOf(pts){ return RANKS[rankIndex(pts)]; }
+function nextRank(pts){ const i=rankIndex(pts); return i<RANKS.length-1? RANKS[i+1] : null; }
 function winsOf(p){ return state.history.filter(h=>h.winner===p).length; }
 
 function checkAchievements(p){
@@ -432,7 +449,7 @@ function doChore(idx, ev, btn){
   const p=active, d=state.data[p], s=state.stats[p];
   const isGolden = idx===state.golden;
   const pts = c.p*(isGolden?2:1);
-  const prevLevel = levelOf(d.score);
+  const prevRank = rankIndex(s.allTimePoints);
 
   d.score+=pts; d.total+=1;
   d.choreCounts[c.n]=(d.choreCounts[c.n]||0)+1;
@@ -458,7 +475,7 @@ function doChore(idx, ev, btn){
     else if(ch.type==="points") done=d.score>=ch.goal;
     else if(ch.type==="golden") done=isGolden;
     else if(ch.type==="streak") done=d.streak>=ch.goal;
-    if(done){ ch.doneBy=p; d.score+=ch.bonus; s.challengesDone++;
+    if(done){ ch.doneBy=p; d.score+=ch.bonus; s.allTimePoints+=ch.bonus; s.challengesDone++;
       flash(ev,"+"+ch.bonus+" 🎯", p==="koni"?"var(--koni)":"var(--claude)");
       celebrate("🎯","Challenge geschafft!", ch.txt+" · +"+ch.bonus+" Bonus", true); }
   }
@@ -467,8 +484,8 @@ function doChore(idx, ev, btn){
   const entry={p, n:c.n, e:c.e, pts, t:Date.now(), golden:isGolden};
   state.data.log.unshift(entry); state.data.log=state.data.log.slice(0,60);
 
-  // level up?
-  const newLevel=levelOf(d.score);
+  // Rang-Aufstieg? (lebenslang)
+  const newRank=rankIndex(s.allTimePoints);
   // achievements
   const newly=checkAchievements(p);
 
@@ -482,8 +499,9 @@ function doChore(idx, ev, btn){
   render(); bumpScore(p);
   showUndo(entry);
 
-  if(newLevel>prevLevel){
-    celebrate(PLAYERS[p].emoji+"⬆️", "Level "+newLevel+"!", PLAYERS[p].name+" ist jetzt "+(LEVEL_NAMES[newLevel]||"Level "+newLevel), true);
+  if(newRank>prevRank){
+    const rk=RANKS[newRank];
+    celebrate(rk.e+"⬆️", "Neuer Rang!", PLAYERS[p].name+" ist jetzt „"+rk.name+"“", true);
   }
   newly.forEach(a=>celebrate(a.e, "Abzeichen freigeschaltet!", PLAYERS[p].name+": "+a.n+" – "+a.d, true));
 }
@@ -565,10 +583,12 @@ function medalsFor(p){ return state.stats[p].achieved.map(id=>{ const a=ACHIEVEM
 function renderBoard(){
   const board=document.getElementById("board");
   const ks=state.data.koni.score, cs=state.data.claude.score;
-  const max=Math.max(ks,cs,nextLevelPts(Math.max(ks,cs)),1);
+  const max=Math.max(ks,cs,1);
   board.innerHTML="";
   for(const key of ["koni","claude"]){
-    const P=PLAYERS[key], d=state.data[key], lvl=levelOf(d.score), next=nextLevelPts(d.score);
+    const P=PLAYERS[key], d=state.data[key], s=state.stats[key];
+    const lp=s.allTimePoints||0, rk=rankOf(lp), nr=nextRank(lp);
+    const rankPct = nr? Math.min(100, Math.max(0,((lp-rk.min)/(nr.min-rk.min))*100)) : 100;
     const pct=Math.min(100,(d.score/max)*100), leading=(key==="koni"?ks>cs:cs>ks)&&d.score>0;
     const meds=medalsFor(key); const shown=meds.slice(0,7).join(" "); const extra=meds.length>7?` <span class="more">+${meds.length-7}</span>`:"";
     const div=document.createElement("div"); div.className="player "+P.cls+(active===key?" active":"");
@@ -578,11 +598,13 @@ function renderBoard(){
       <div class="top">
         <div class="avatar">${P.emoji}</div>
         <div><div class="pname">${P.name}</div>
-          <div class="plevel">Lvl ${lvl} · ${LEVEL_NAMES[lvl]||""} · ${d.total} Aufg.</div></div>
+          <div class="plevel">${rk.e} ${rk.name}</div></div>
       </div>
-      <div class="pscore">${d.score}<small> Pkt</small></div>
+      <div class="pscore">${d.score}<small> Pkt/Woche</small></div>
       <div class="bar"><i style="width:${pct}%"></i></div>
-      <div class="streak">🔥 Serie: ${state.data.lastBy===key?d.streak:0} · bis Lvl ${lvl+1}: ${Math.max(0,next-d.score)} Pkt</div>
+      <div class="streak">🔥 Serie: ${state.data.lastBy===key?d.streak:0}</div>
+      <div class="rankrow">⭐ ${lp} Pkt gesamt · ${nr? `bis ${nr.e} ${nr.name}: ${nr.min-lp}` : "Höchster Rang! 🏆"}</div>
+      <div class="bar mini"><i style="width:${rankPct}%"></i></div>
       <div class="medals">${shown||'<span class="more">noch keine Abzeichen</span>'}${extra}</div>`;
     div.onclick=()=>{ setActive(key); render(); };
     board.appendChild(div);
@@ -657,27 +679,53 @@ document.getElementById("editDone").onclick=()=>{ document.getElementById("editO
 /* ---------- Trophy room ---------- */
 let trophyTab="koni";
 function renderTrophy(){
-  const m=document.getElementById("trophyModal"), p=trophyTab, s=state.stats[p], w=state.data[p];
+  const m=document.getElementById("trophyModal"), p=trophyTab, s=state.stats[p];
   const unlocked=s.achieved.length, totalA=ACHIEVEMENTS.length;
+  const lp=s.allTimePoints||0, rk=rankOf(lp), nr=nextRank(lp);
+  const rankPct = nr? Math.min(100, Math.max(0,((lp-rk.min)/(nr.min-rk.min))*100)) : 100;
   const grid=ACHIEVEMENTS.map(a=>{
     const got=s.achieved.includes(a.id);
     return `<div class="trophy ${got?"":"locked"}"><div class="te">${a.e}</div><div class="tn">${a.n}</div><div class="td">${a.d}</div></div>`;
   }).join("");
-  m.innerHTML=`<h2>🏅 Trophäen</h2>
+  const ranklist=RANKS.map((r,i)=>{
+    const cur=i===rankIndex(lp), got=lp>=r.min;
+    return `<div class="trophy ${got?"":"locked"}" style="${cur?'box-shadow:inset 0 0 0 2px var(--gold);':''}">
+      <div class="te">${r.e}</div><div class="tn">${r.name}</div><div class="td">${r.min} Pkt</div></div>`;
+  }).join("");
+  m.innerHTML=`<h2>🏅 Trophäen &amp; Ränge</h2>
     <div class="tabs">
       <button class="koni ${p==="koni"?"sel":""}" data-t="koni">🧔 Koni</button>
       <button class="claude ${p==="claude"?"sel":""}" data-t="claude">👩 Claude</button>
     </div>
+    <div style="text-align:center;font-size:19px;font-weight:800;margin-bottom:6px;">${rk.e} ${rk.name}</div>
+    <div style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:6px;">
+      ${lp} Punkte gesamt${nr?` · noch ${nr.min-lp} bis ${nr.e} ${nr.name}`:` · höchster Rang erreicht! 🏆`}</div>
+    <div class="bar" style="margin-bottom:16px;"><i style="width:${rankPct}%;background:var(--gold);"></i></div>
     <div class="tstat">
       <div class="box"><b>${unlocked}/${totalA}</b><span>Abzeichen</span></div>
       <div class="box"><b>${s.allTimeTotal}</b><span>Aufgaben gesamt</span></div>
       <div class="box"><b>${winsOf(p)}</b><span>Wochensiege</span></div>
       <div class="box"><b>${s.bestDayStreak}🔥</b><span>Beste Tagesserie</span></div>
     </div>
+    <div class="section-title" style="margin:4px;">Abzeichen</div>
     <div class="trophy-grid">${grid}</div>
-    <div class="btnrow"><button class="btn" id="trClose">Schließen</button></div>`;
+    <div class="section-title" style="margin:14px 4px 8px;">Rang-Leiter (immer schwerer)</div>
+    <div class="trophy-grid">${ranklist}</div>
+    <div class="btnrow"><button class="btn" id="trClose">Schließen</button></div>
+    <button class="btn danger" id="trReset" style="width:100%;margin-top:10px;">🗑️ Punkte &amp; Abzeichen löschen</button>
+    <p style="text-align:center;margin:8px 0 0;font-size:12px;">Setzt für BEIDE Spieler alles auf Null (Punkte, Ränge, Abzeichen, Wochen-Historie). Aufgabenliste bleibt.</p>`;
   m.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{ trophyTab=b.dataset.t; renderTrophy(); });
   m.querySelector("#trClose").onclick=()=>document.getElementById("trophyOverlay").classList.remove("show");
+  m.querySelector("#trReset").onclick=resetAll;
+}
+function resetAll(){
+  if(!confirm("Wirklich ALLES löschen?\n\nPunkte, Ränge, Abzeichen und die komplette Wochen-Historie – für Koni UND Claude. Das kann nicht rückgängig gemacht werden.")) return;
+  if(!confirm("Ganz sicher? Letzte Warnung – alles wird auf Null gesetzt.")) return;
+  state.data=freshWeek();
+  state.stats={koni:freshStats(), claude:freshStats()};
+  state.history=[];
+  save(); renderTrophy(); render();
+  celebrate("🧼","Zurückgesetzt","Alles steht wieder bei Null – viel Erfolg!", false);
 }
 document.getElementById("trophyBtn").onclick=()=>{ trophyTab=active; renderTrophy(); document.getElementById("trophyOverlay").classList.add("show"); };
 
