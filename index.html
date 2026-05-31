@@ -271,6 +271,31 @@ const RANKS = [
   {min:15000, e:"🏆", name:"Großmeister der Sauberkeit"},
   {min:22000, e:"⚡", name:"Haushalts-Gott"},
 ];
+/* 20 Geschenk-/Belohnungsideen (max. 5 Min Aufwand) – am Wochenende wird zufällig eine gezogen */
+const REWARDS = [
+  {e:"☕", t:"Lieblingsgetränk ans Sofa serviert bekommen"},
+  {e:"💆", t:"5 Minuten Nacken- & Schultermassage"},
+  {e:"🎬", t:"Heute Abend den Film/die Serie aussuchen dürfen"},
+  {e:"🍫", t:"Lieblingsschokolade oder -snack wird besorgt"},
+  {e:"🛏️", t:"Morgen Kaffee/Tee ans Bett"},
+  {e:"🎵", t:"Den ganzen Tag die Musik/Playlist bestimmen"},
+  {e:"🦶", t:"5 Minuten Fußmassage"},
+  {e:"📝", t:"Gutschein: 1× eine Haushaltsaufgabe abgenommen"},
+  {e:"🧁", t:"Eine kleine Lieblings-Süßigkeit als Überraschung"},
+  {e:"🤗", t:"Extra-lange Kuschel-Einheit auf der Couch"},
+  {e:"🍳", t:"Wunsch-Frühstück wird zubereitet"},
+  {e:"📺", t:"Eine Folge der Lieblingsserie zusammen schauen"},
+  {e:"💌", t:"Ein handgeschriebenes Liebes-Kärtchen"},
+  {e:"🍽️", t:"Das Abendessen heute aussuchen dürfen"},
+  {e:"😴", t:"30 Minuten ungestörte Ruhe – Partner übernimmt"},
+  {e:"🌟", t:"Drei ehrliche Komplimente bekommen"},
+  {e:"🚗", t:"Beim nächsten Autofahren Beifahrer-DJ sein"},
+  {e:"🛁", t:"Das Bad gehört dir – in Ruhe lange duschen/baden"},
+  {e:"🧹", t:"Gutschein: Partner saugt diese Woche"},
+  {e:"📸", t:"Ein gemeinsames Erinnerungs-Selfie"},
+];
+function pickReward(){ return REWARDS[Math.floor(Math.random()*REWARDS.length)]; }
+
 /* Avatar-Stufen: werden mit jedem Rang hochwertiger (Ring, Glow, Krone, Funkeln) */
 const AVATAR_TIERS = [
   {ring:"#475569", glow:"none"},                                                                 // 0 Frischling – schlicht
@@ -431,7 +456,7 @@ function checkWeek(){
   if(state.week!==now){
     const d=state.data;
     const winner = d.koni.score===d.claude.score ? "tie" : (d.koni.score>d.claude.score?"koni":"claude");
-    state.history.unshift({week:state.week, koni:d.koni.score, claude:d.claude.score, winner});
+    state.history.unshift({week:state.week, koni:d.koni.score, claude:d.claude.score, winner, reward:pickReward()});
     state.history=state.history.slice(0,30);
     state.week=now; state.data=freshWeek();
     // Sieg-Trophäen sofort prüfen
@@ -773,12 +798,20 @@ function showWeekResult(h, auto){
   const m=document.getElementById("weekModal");
   let winHtml; if(h.winner==="tie") winHtml=`<div class="winner">🤝 Unentschieden!</div>`;
   else{ const P=PLAYERS[h.winner]; winHtml=`<div class="big">${P.emoji}🏆</div><div class="winner">${P.name} gewinnt!</div>`; }
+  const rw=h.reward||pickReward();
+  const forWho = h.winner==="tie" ? "für beide 💕" : "für "+PLAYERS[h.winner].name;
   m.innerHTML=`${auto?'<p style="text-align:center">Neue Woche gestartet 🎉</p>':''}${winHtml}
     <div class="sub">${h.week.replace("-W"," KW ")}<br>Koni ${h.koni} · Claude ${h.claude}</div>
-    <div class="sub">🎁 Gewinner sucht sich den Wochenpreis aus!</div>
-    <div class="btnrow"><button class="btn primary" id="wOk">Weiter</button></div>`;
+    <div style="background:var(--panel2);border:2px solid var(--gold);border-radius:16px;padding:16px;margin-bottom:16px;text-align:center;">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;">🎁 Zufälliger Wochenpreis ${forWho}</div>
+      <div style="font-size:40px;line-height:1;margin:4px 0;">${rw.e}</div>
+      <div style="font-size:17px;font-weight:700;">${rw.t}</div>
+    </div>
+    <div class="btnrow"><button class="btn" id="wReroll">🎲 Neu würfeln</button><button class="btn primary" id="wOk">Einlösen 🎉</button></div>`;
   document.getElementById("weekOverlay").classList.add("show");
   document.getElementById("wOk").onclick=()=>document.getElementById("weekOverlay").classList.remove("show");
+  const rr=document.getElementById("wReroll");
+  if(rr) rr.onclick=()=>{ h.reward=pickReward(); save(); showWeekResult(h, auto); };
   if(h.winner!=="tie") confettiBurst(innerWidth/2, innerHeight*0.35, 60);
 }
 document.getElementById("weekBtn").onclick=()=>{
@@ -786,7 +819,7 @@ document.getElementById("weekBtn").onclick=()=>{
   const lead=d.koni.score===d.claude.score?"Gleichstand":(d.koni.score>d.claude.score?"Koni führt":"Claude führt");
   const hist=state.history.map(h=>{ const w=h.winner==="tie"?"🤝":PLAYERS[h.winner].emoji;
     return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:14px;">
-      <span>${h.week.replace("-W"," KW ")}</span><span>K ${h.koni} · C ${h.claude} ${w}</span></div>`;
+      <span>${h.week.replace("-W"," KW ")} ${h.reward?h.reward.e:""}</span><span>K ${h.koni} · C ${h.claude} ${w}</span></div>`;
   }).join("")||'<div class="empty">Noch keine abgeschlossenen Wochen.</div>';
   m.innerHTML=`<h2>🎁 Wochenstand</h2><p>${lead} · Wochensieger sucht sich den Preis aus!</p>
     <div style="display:flex;gap:10px;margin-bottom:16px;">
@@ -800,7 +833,7 @@ document.getElementById("weekBtn").onclick=()=>{
   document.getElementById("wReset").onclick=()=>{
     if(!confirm("Aktuelle Woche beenden und Sieger küren? Punkte werden zurückgesetzt.")) return;
     const dd=state.data, winner=dd.koni.score===dd.claude.score?"tie":(dd.koni.score>dd.claude.score?"koni":"claude");
-    state.history.unshift({week:state.week, koni:dd.koni.score, claude:dd.claude.score, winner});
+    state.history.unshift({week:state.week, koni:dd.koni.score, claude:dd.claude.score, winner, reward:pickReward()});
     state.history=state.history.slice(0,30);
     state.data=freshWeek(); ["koni","claude"].forEach(p=>checkAchievements(p)); save();
     showWeekResult(state.history[0], false);
